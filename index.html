@@ -206,17 +206,19 @@
                 tg.HapticFeedback.notificationOccurred('error');
             }
 
-            updateBalanceUI();
-            tg.CloudStorage.setItem('user_balance', balance.toString());
+           updateBalanceUI();
+        tg.CloudStorage.setItem('user_balance', balance.toString());
 
-            // Возвращаем кнопки через 4 секунды
-            setTimeout(() => {
-                document.getElementById('buttons-block').style.display = 'flex';
-                instruction.innerHTML = `Сделай прогноз на <b>60 секунд</b> (Ставка: 100 монет):`;
-                timerStatus.innerText = '';
-                isPlaying = false;
-            }, 4000);
+        // Отправляем новый баланс боту и закрываем приложение
+        if (tg.sendData) {
+            tg.sendData(JSON.stringify({
+                action: "update_balance",
+                new_balance: balance
+            }));
         }
+    }
+            
+           
     </script>
 </body>
 </html>
