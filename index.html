@@ -206,16 +206,13 @@
                 tg.HapticFeedback.notificationOccurred('error');
             }
 
-           updateBalanceUI();
+          updateBalanceUI();
         tg.CloudStorage.setItem('user_balance', balance.toString());
 
-        // Отправляем новый баланс боту и закрываем приложение
-        if (tg.sendData) {
-            tg.sendData(JSON.stringify({
-                action: "update_balance",
-                new_balance: balance
-            }));
-        }
+        // Показываем кнопку синхронизации для ПК и телефона
+        const buttonsBlock = document.getElementById('buttons-block');
+        buttonsBlock.style.display = 'flex';
+        buttonsBlock.innerHTML = `<button class="btn" style="background-color: #3498db;" onclick="window.location.href='https://t.me/predict_duels_game_bot?start=balance_${balance}'">💾 Сохранить баланс в боте</button>`;
     }
             
            
