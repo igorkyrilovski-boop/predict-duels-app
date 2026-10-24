@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Predict Duels Mini App</title>
-    <!-- Подключаем скрипт Telegram WebApp -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -30,18 +29,25 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
+        .balance-container {
+            font-size: 18px;
+            font-weight: bold;
+            color: #f39c12;
+            margin-bottom: 10px;
+        }
+
         .price {
             font-size: 32px;
             font-weight: bold;
             color: #4eef90;
-            margin: 15px 0;
+            margin: 10px 0;
         }
 
         .buttons-container {
             display: flex;
             gap: 15px;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 15px;
         }
 
         .btn {
@@ -59,6 +65,11 @@
             transform: scale(0.96);
         }
 
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .btn-up {
             background-color: #2ecc71;
             color: white;
@@ -71,7 +82,7 @@
 
         .status {
             font-size: 14px;
-            color: #888;
+            color: #aaa;
             margin-top: 10px;
         }
     </style>
@@ -79,29 +90,51 @@
 <body>
 
     <div class="card">
+        <div class="balance-container">💰 Баланс: <span id="balance">1000</span> монет</div>
         <h2>⚔️ Арена Дуэлей</h2>
         <p>Пара: <b>BTC / USDT</b></p>
         <div class="price" id="btc-price">$ --,---.--</div>
         <div class="status" id="status">Подключение к бирже...</div>
     </div>
 
-    <div class="card">
-        <p>Сделай прогноз на <b>60 секунд</b>:</p>
-        <div class="buttons-container">
+    <div class="card" id="game-card">
+        <p id="game-instruction">Сделай прогноз на <b>60 секунд</b> (Ставка: 100 монет):</p>
+        <div class="buttons-container" id="buttons-block">
             <button class="btn btn-up" onclick="makeBet('UP')">🚀 ВЫРАСТЕТ</button>
             <button class="btn btn-down" onclick="makeBet('DOWN')">📉 УПАДЕТ</button>
         </div>
+        <div class="status" id="timer-status"></div>
     </div>
 
     <script>
-        // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Разворачиваем на весь экран
+        tg.expand();
 
-        // Получение живой цены BTC с Binance напрямую через браузер
+        let balance = 1000;
+        const BET_AMOUNT = 100;
+        let isPlaying = false;
+
+        // Загружаем баланс из облака Telegram
+        tg.CloudStorage.getItem('user_balance', (err, value) => {
+            if (!err && value) {
+                balance = parseInt(value);
+            } else {
+                // Если первый раз, сохраняем 1000
+                tg.CloudStorage.setItem('user_balance', '1000');
+            }
+            updateBalanceUI();
+        });
+
+        function updateBalanceUI() {
+            document.getElementById('balance').innerText = balance;
+        }
+
+        // Подключение к Binance WebSocket для живого курса
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
         const priceEl = document.getElementById('btc-price');
         const statusEl = document.getElementById('status');
+
+        let currentPrice = 0;
 
         ws.onopen = () => {
             statusEl.innerText = "🟢 Рынок в реальном времени";
@@ -109,13 +142,80 @@
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            const price = parseFloat(data.p).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            priceEl.innerText = `$${price}`;
+            currentPrice = parseFloat(data.p);
+            const formattedPrice = currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            priceEl.innerText = `$${formattedPrice}`;
         };
 
         function makeBet(direction) {
-            tg.HapticFeedback.impactOccurred('medium'); // Виброотклик в телефоне
-            alert(`Ставка принята! Прогноз: ${direction}`);
+            if (isPlaying) return;
+            if (balance < BET_AMOUNT) {
+                alert("Недостаточно монет на балансе!");
+                return;
+            }
+
+            tg.HapticFeedback.impactOccurred('medium');
+            
+            // Списываем ставку
+            balance -= BET_AMOUNT;
+            updateBalanceUI();
+            tg.CloudStorage.setItem('user_balance', balance.toString());
+
+            isPlaying = true;
+            const startPrice = currentPrice;
+            
+            document.getElementById('buttons-block').style.display = 'none';
+            const timerStatus = document.getElementById('timer-status');
+            const instruction = document.getElementById('game-instruction');
+            
+            instruction.innerHTML = `Прогноз: <b>${direction === 'UP' ? '🚀 ВЫРАСТЕТ' : '📉 УПАДЕТ'}</b><br>Начальная цена: $${startPrice.toFixed(2)}`;
+
+            let timeLeft = 60;
+            timerStatus.innerText = `⏳ До окончания дуэли: ${timeLeft} сек.`;
+
+            const interval = setInterval(() => {
+                timeLeft--;
+                timerStatus.innerText = `⏳ До окончания дуэли: ${timeLeft} сек.`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    finishGame(startPrice, direction);
+                }
+            }, 1000);
+        }
+
+        function finishGame(startPrice, direction) {
+            const endPrice = currentPrice;
+            let won = false;
+
+            if (direction === 'UP' && endPrice > startPrice) won = true;
+            if (direction === 'DOWN' && endPrice < startPrice) won = true;
+
+            const instruction = document.getElementById('game-instruction');
+            const timerStatus = document.getElementById('timer-status');
+
+            if (won) {
+                const prize = BET_AMOUNT * 2;
+                balance += prize;
+                instruction.innerHTML = `🎉 ПОБЕДА! Цена стала $${endPrice.toFixed(2)}`;
+                timerStatus.innerHTML = `💰 Вы выиграли <b>+${prize} монет</b>!`;
+                tg.HapticFeedback.notificationOccurred('success');
+            } else {
+                instruction.innerHTML = `❌ ПРОИГРЫШ. Цена стала $${endPrice.toFixed(2)}`;
+                timerStatus.innerHTML = `💸 Вы потеряли ${BET_AMOUNT} монет.`;
+                tg.HapticFeedback.notificationOccurred('error');
+            }
+
+            updateBalanceUI();
+            tg.CloudStorage.setItem('user_balance', balance.toString());
+
+            // Возвращаем кнопки через 4 секунды
+            setTimeout(() => {
+                document.getElementById('buttons-block').style.display = 'flex';
+                instruction.innerHTML = `Сделай прогноз на <b>60 секунд</b> (Ставка: 100 монет):`;
+                timerStatus.innerText = '';
+                isPlaying = false;
+            }, 4000);
         }
     </script>
 </body>
