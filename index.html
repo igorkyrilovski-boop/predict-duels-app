@@ -45,9 +45,10 @@
 
         .buttons-container {
             display: flex;
-            gap: 10px;
+            gap: 6px;
             width: 100%;
             margin-top: 15px;
+            box-sizing: border-box;
         }
 
         .btn {
@@ -66,11 +67,16 @@
         }
 
         .bet-btn {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.15);
             color: #fff;
             font-size: 14px;
-            padding: 10px;
-            display: inline-block; /* Добавили видимость */
+            padding: 10px 4px;
+            flex: 1;
+            border-radius: 10px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
         }
 
         .bet-btn.active {
@@ -112,13 +118,13 @@
         
         <!-- Выбор суммы ставки -->
         <div class="buttons-container" id="bet-selection">
-            <button class="btn bet-btn" onclick="setBet(50)">50</button>
-            <button class="btn bet-btn active" onclick="setBet(100)">100</button>
-            <button class="btn bet-btn" onclick="setBet(250)">250</button>
-            <button class="btn bet-btn" onclick="setBet(500)">500</button>
+            <button class="bet-btn" onclick="setBet(50)">50</button>
+            <button class="bet-btn active" onclick="setBet(100)">100</button>
+            <button class="bet-btn" onclick="setBet(250)">250</button>
+            <button class="bet-btn" onclick="setBet(500)">500</button>
         </div>
 
-        <div class="buttons-container" id="buttons-block">
+        <div class="buttons-container" id="buttons-block" style="margin-top: 10px;">
             <button class="btn btn-up" onclick="makeBet('UP')">🚀 ВЫРАСТЕТ</button>
             <button class="btn btn-down" onclick="makeBet('DOWN')">📉 УПАДЕТ</button>
         </div>
@@ -130,10 +136,9 @@
         tg.expand();
 
         let balance = 1000;
-        let currentBet = 100; // Стандартная ставка
+        let currentBet = 100;
         let isPlaying = false;
 
-        // Загружаем баланс из облака Telegram
         tg.CloudStorage.getItem('user_balance', (err, value) => {
             if (!err && value) {
                 balance = parseInt(value);
@@ -151,7 +156,6 @@
             if (isPlaying) return;
             currentBet = amount;
             
-            // Переключаем активный класс на кнопках ставок
             document.querySelectorAll('.bet-btn').forEach(btn => {
                 btn.classList.remove('active');
                 if (parseInt(btn.innerText) === amount) {
@@ -161,7 +165,6 @@
             tg.HapticFeedback.selectionChanged();
         }
 
-        // Подключение к Binance WebSocket для живого курса
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
         const priceEl = document.getElementById('btc-price');
         const statusEl = document.getElementById('status');
@@ -188,7 +191,6 @@
 
             tg.HapticFeedback.impactOccurred('medium');
             
-            // Списываем выбранную ставку
             balance -= currentBet;
             updateBalanceUI();
             tg.CloudStorage.setItem('user_balance', balance.toString());
@@ -196,9 +198,8 @@
             isPlaying = true;
             const startPrice = currentPrice;
             
-            // Скрываем выбор ставок и кнопки прогноза на время игры
             document.getElementById('bet-selection').style.display = 'none';
-            document.getElementById('buttons-block').style.display = 'none';
+            document.getElementById('buttons-block').style.display = 'flex';
             
             const timerStatus = document.getElementById('timer-status');
             const instruction = document.getElementById('game-instruction');
@@ -230,7 +231,7 @@
             const timerStatus = document.getElementById('timer-status');
 
             if (won) {
-                const prize = currentBet * 2; // Выигрыш х2 от ставки
+                const prize = currentBet * 2;
                 balance += prize;
                 instruction.innerHTML = `🎉 ПОБЕДА! Цена стала $${endPrice.toFixed(2)}`;
                 timerStatus.innerHTML = `💰 Вы выиграли <b>+${prize} монет</b>!`;
@@ -244,7 +245,6 @@
             updateBalanceUI();
             tg.CloudStorage.setItem('user_balance', balance.toString());
 
-            // Автоматический переход в бота через 2.5 секунды для обновления базы данных
             setTimeout(() => {
                 window.location.href = `https://t.me/predict_duels_game_bot?start=balance_${balance}`;
             }, 2500);
