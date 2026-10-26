@@ -11,19 +11,19 @@
             background-color: var(--tg-theme-bg-color, #1a1a2e);
             color: var(--tg-theme-text-color, #ffffff);
             margin: 0;
-            padding: 15px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            height: 94vh;
+            height: 96vh;
             box-sizing: border-box;
         }
 
         .card {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 16px;
-            padding: 15px 20px;
+            padding: 12px 16px;
             width: 100%;
             text-align: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
@@ -31,20 +31,20 @@
         }
 
         .balance-container {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: bold;
             color: #f39c12;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .stats-grid {
             display: flex;
             justify-content: space-around;
-            margin-top: 10px;
-            font-size: 13px;
+            margin-top: 8px;
+            font-size: 12px;
             color: #cbd5e1;
             border-top: 1px solid rgba(255,255,255,0.1);
-            padding-top: 8px;
+            padding-top: 6px;
         }
 
         .stats-item span {
@@ -52,24 +52,47 @@
             color: #fff;
         }
 
+        .pair-container {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .pair-btn {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            padding: 6px;
+            color: #aaa;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .pair-btn.active {
+            background: #3b82f6;
+            color: white;
+        }
+
         .price {
-            font-size: 28px;
+            font-size: 26px;
             font-weight: bold;
             color: #4eef90;
-            margin: 8px 0;
+            margin: 6px 0;
         }
 
         .buttons-container {
             display: flex;
             gap: 6px;
             width: 100%;
-            margin-top: 12px;
+            margin-top: 10px;
             box-sizing: border-box;
         }
 
         .btn {
             flex: 1;
-            padding: 14px;
+            padding: 12px;
             border: none;
             border-radius: 12px;
             font-size: 16px;
@@ -85,10 +108,10 @@
         .bet-btn {
             background-color: #e2e8f0;
             color: #1e293b;
-            font-size: 14px;
-            padding: 8px 4px;
+            font-size: 13px;
+            padding: 6px 4px;
             flex: 1;
-            border-radius: 10px;
+            border-radius: 8px;
             border: none;
             font-weight: bold;
             cursor: pointer;
@@ -103,19 +126,19 @@
         .btn-up {
             background-color: #2ecc71;
             color: white;
-            font-size: 18px;
+            font-size: 16px;
         }
 
         .btn-down {
             background-color: #e74c3c;
             color: white;
-            font-size: 18px;
+            font-size: 16px;
         }
 
         .status {
-            font-size: 14px;
+            font-size: 13px;
             color: #aaa;
-            margin-top: 8px;
+            margin-top: 6px;
         }
     </style>
 </head>
@@ -132,14 +155,18 @@
     </div>
 
     <div class="card">
-        <h2>⚔️ Арена Дуэлей</h2>
-        <p style="margin: 5px 0;">Пара: <b>BTC / USDT</b></p>
+        <div class="pair-container">
+            <button class="pair-btn active" onclick="changePair('btcusdt', 'BTC / USDT')">BTC</button>
+            <button class="pair-btn" onclick="changePair('ethusdt', 'ETH / USDT')">ETH</button>
+            <button class="pair-btn" onclick="changePair('solusdt', 'SOL / USDT')">SOL</button>
+        </div>
+        <h2 style="margin: 2px 0; font-size: 18px;">⚔️ <span id="pair-title">BTC / USDT</span></h2>
         <div class="price" id="btc-price">$ --,---.--</div>
         <div class="status" id="status">Подключение к бирже...</div>
     </div>
 
     <div class="card" id="game-card">
-        <p id="game-instruction" style="margin-top: 0;">Выберите ставку и прогноз на <b>60 секунд</b>:</p>
+        <p id="game-instruction" style="margin: 0 0 6px 0; font-size: 14px;">Ставка и прогноз на <b>60 секунд</b>:</p>
         
         <!-- Выбор суммы ставки -->
         <div class="buttons-container" id="bet-selection">
@@ -149,7 +176,7 @@
             <button class="bet-btn" onclick="setBet(500)">500</button>
         </div>
 
-        <div class="buttons-container" id="buttons-block" style="margin-top: 10px;">
+        <div class="buttons-container" id="buttons-block" style="margin-top: 8px;">
             <button class="btn btn-up" onclick="makeBet('UP')">🚀 ВЫРАСТЕТ</button>
             <button class="btn btn-down" onclick="makeBet('DOWN')">📉 УПАДЕТ</button>
         </div>
@@ -163,28 +190,22 @@
         let balance = 1000;
         let currentBet = 100;
         let isPlaying = false;
+        let currentSymbol = 'btcusdt';
+        let currentPairName = 'BTC / USDT';
+        let ws = null;
+        let currentPrice = 0;
 
-        let stats = {
-            total: 0,
-            wins: 0,
-            losses: 0
-        };
+        let stats = { total: 0, wins: 0, losses: 0 };
 
-        // Загружаем данные из облака Telegram
         tg.CloudStorage.getItem('user_balance', (err, value) => {
-            if (!err && value) {
-                balance = parseInt(value);
-            } else {
-                tg.CloudStorage.setItem('user_balance', '1000');
-            }
+            if (!err && value) balance = parseInt(value);
+            else tg.CloudStorage.setItem('user_balance', '1000');
             updateUI();
         });
 
         tg.CloudStorage.getItem('user_stats', (err, value) => {
             if (!err && value) {
-                try {
-                    stats = JSON.parse(value);
-                } catch(e) {}
+                try { stats = JSON.parse(value); } catch(e) {}
             }
             updateUI();
         });
@@ -194,7 +215,6 @@
             document.getElementById('stat-total').innerText = stats.total;
             document.getElementById('stat-wins').innerText = stats.wins;
             document.getElementById('stat-losses').innerText = stats.losses;
-            
             let winrate = stats.total > 0 ? Math.round((stats.wins / stats.total) * 100) : 0;
             document.getElementById('stat-winrate').innerText = winrate + '%';
         }
@@ -202,42 +222,57 @@
         function setBet(amount) {
             if (isPlaying) return;
             currentBet = amount;
-            
             document.querySelectorAll('.bet-btn').forEach(btn => {
                 btn.classList.remove('active');
-                if (parseInt(btn.innerText) === amount) {
-                    btn.classList.add('active');
-                }
+                if (parseInt(btn.innerText) === amount) btn.classList.add('active');
             });
             tg.HapticFeedback.selectionChanged();
         }
 
-        const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
-        const priceEl = document.getElementById('btc-price');
-        const statusEl = document.getElementById('status');
+        function changePair(symbol, pairName) {
+            if (isPlaying) return;
+            currentSymbol = symbol;
+            currentPairName = pairName;
+            document.getElementById('pair-title').innerText = pairName;
 
-        let currentPrice = 0;
+            document.querySelectorAll('.pair-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.innerText.includes(symbol.replace('usdt', '').toUpperCase())) {
+                    btn.classList.add('active');
+                }
+            });
 
-        ws.onopen = () => {
-            statusEl.innerText = "🟢 Рынок в реальном времени";
-        };
+            connectWebSocket();
+            tg.HapticFeedback.selectionChanged();
+        }
 
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            currentPrice = parseFloat(data.p);
-            const formattedPrice = currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            priceEl.innerText = `$${formattedPrice}`;
-        };
+        function connectWebSocket() {
+            if (ws) ws.close();
+            const priceEl = document.getElementById('btc-price');
+            const statusEl = document.getElementById('status');
+            statusEl.innerText = "Подключение...";
+
+            ws = new WebSocket(`wss://stream.binance.com:9443/ws/${currentSymbol}@trade`);
+
+            ws.onopen = () => { statusEl.innerText = "🟢 Рынок в реальном времени"; };
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                currentPrice = parseFloat(data.p);
+                let decimals = currentSymbol === 'btcusdt' ? 2 : 2;
+                priceEl.innerText = `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+            };
+        }
+
+        connectWebSocket();
 
         function makeBet(direction) {
             if (isPlaying) return;
             if (balance < currentBet) {
-                alert("Недостаточно монет на балансе для такой ставки!");
+                alert("Недостаточно монет на балансе!");
                 return;
             }
 
             tg.HapticFeedback.impactOccurred('medium');
-            
             balance -= currentBet;
             updateUI();
             tg.CloudStorage.setItem('user_balance', balance.toString());
@@ -246,12 +281,13 @@
             const startPrice = currentPrice;
             
             document.getElementById('bet-selection').style.display = 'none';
+            document.querySelector('.pair-container').style.display = 'none';
             document.getElementById('buttons-block').style.display = 'flex';
             
             const timerStatus = document.getElementById('timer-status');
             const instruction = document.getElementById('game-instruction');
             
-            instruction.innerHTML = `Ставка: <b>${currentBet} монет</b><br>Прогноз: <b>${direction === 'UP' ? '🚀 ВЫРАСТЕТ' : '📉 УПАДЕТ'}</b><br>Начальная цена: $${startPrice.toFixed(2)}`;
+            instruction.innerHTML = `Пара: <b>${currentPairName}</b> | Ставка: <b>${currentBet}</b><br>Прогноз: <b>${direction === 'UP' ? '🚀 ВЫРАСТЕТ' : '📉 УПАДЕТ'}</b> ($${startPrice.toFixed(2)})`;
 
             let timeLeft = 60;
             timerStatus.innerText = `⏳ До окончания дуэли: ${timeLeft} сек.`;
@@ -282,19 +318,17 @@
                 stats.wins++;
                 const prize = currentBet * 2;
                 balance += prize;
-                instruction.innerHTML = `🎉 ПОБЕДА! Цена стала $${endPrice.toFixed(2)}`;
+                instruction.innerHTML = `🎉 ПОБЕДА! (${currentPairName}) Цена: $${endPrice.toFixed(2)}`;
                 timerStatus.innerHTML = `💰 Вы выиграли <b>+${prize} монет</b>!`;
                 tg.HapticFeedback.notificationOccurred('success');
             } else {
                 stats.losses++;
-                instruction.innerHTML = `❌ ПРОИГРЫШ. Цена стала $${endPrice.toFixed(2)}`;
+                instruction.innerHTML = `❌ ПРОИГРЫШ. (${currentPairName}) Цена: $${endPrice.toFixed(2)}`;
                 timerStatus.innerHTML = `💸 Вы потеряли ${currentBet} монет.`;
                 tg.HapticFeedback.notificationOccurred('error');
             }
 
             updateUI();
-            
-            // Сохраняем в облако Telegram
             tg.CloudStorage.setItem('user_balance', balance.toString());
             tg.CloudStorage.setItem('user_stats', JSON.stringify(stats));
 
