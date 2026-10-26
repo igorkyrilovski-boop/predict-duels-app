@@ -88,12 +88,73 @@
             color: #4eef90;
         }
 
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .expand-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            padding: 3px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
         #price-canvas {
             width: 100%;
-            height: 150px;
+            height: 140px;
             display: block;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
+        }
+
+        /* Модальное окно для полноэкранного графика */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #0f172a;
+            z-index: 1000;
+            flex-direction: column;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .close-btn {
+            background: #e74c3c;
+            border: none;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #modal-canvas {
+            width: 100%;
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
         }
 
         .buttons-container {
@@ -176,8 +237,26 @@
             <span style="font-weight: bold; font-size: 14px;" id="pair-title">BTC / USDT</span>
             <div class="price-text" id="btc-price">$--,---.--</div>
         </div>
+        
+        <div class="chart-header">
+            <span style="font-size: 11px; color: #888;">Японские свечи (3s)</span>
+            <button class="expand-btn" onclick="openModalChart()">🔍 Отдельное окно</button>
+        </div>
+        
         <canvas id="price-canvas"></canvas>
         <div class="status" id="status">Подключение к бирже...</div>
+    </div>
+
+    <!-- Полноэкранное модальное окно с графиком -->
+    <div class="modal" id="chart-modal">
+        <div class="modal-header">
+            <div>
+                <h3 style="margin: 0; color: #fff;" id="modal-pair-title">BTC / USDT</h3>
+                <div style="color: #4eef90; font-size: 18px; font-weight: bold;" id="modal-btc-price">$--,---.--</div>
+            </div>
+            <button class="close-btn" onclick="closeModalChart()">✕ Закрыть</button>
+        </div>
+        <canvas id="modal-canvas"></canvas>
     </div>
 
     <div class="card" id="game-card">
@@ -215,51 +294,79 @@
         const canvas = document.getElementById('price-canvas');
         const ctx = canvas.getContext('2d');
 
+        const modalCanvas = document.getElementById('modal-canvas');
+        const modalCtx = modalCanvas.getContext('2d');
+
         function resizeCanvas() {
             canvas.width = canvas.parentElement.clientWidth - 28;
-            canvas.height = 150;
+            canvas.height = 140;
+
+            if (document.getElementById('chart-modal').classList.contains('active')) {
+                modalCanvas.width = modalCanvas.parentElement.clientWidth - 30;
+                modalCanvas.height = modalCanvas.parentElement.clientHeight - 80;
+            }
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        function drawCandles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        function drawCandlesOnContext(cContext, cCanvas, maxCandles) {
+            cContext.clearRect(0, 0, cCanvas.width, cCanvas.height);
             if (candles.length === 0) return;
 
+            let displayCandles = candles.slice(-maxCandles);
+
             let prices = [];
-            candles.forEach(c => prices.push(c.high, c.low));
+            displayCandles.forEach(c => prices.push(c.high, c.low));
             let min = Math.min(...prices);
             let max = Math.max(...prices);
             let range = max - min || 1;
 
-            let candleWidth = Math.max(3, canvas.width / candles.length - 3);
+            let candleWidth = Math.max(4, cCanvas.width / displayCandles.length - 4);
 
-            candles.forEach((c, i) => {
-                let x = i * (canvas.width / candles.length) + candleWidth / 2;
+            displayCandles.forEach((c, i) => {
+                let x = i * (cCanvas.width / displayCandles.length) + candleWidth / 2;
                 
-                let yHigh = canvas.height - ((c.high - min) / range) * (canvas.height - 20) - 10;
-                let yLow = canvas.height - ((c.low - min) / range) * (canvas.height - 20) - 10;
-                let yOpen = canvas.height - ((c.open - min) / range) * (canvas.height - 20) - 10;
-                let yClose = canvas.height - ((c.close - min) / range) * (canvas.height - 20) - 10;
+                let yHigh = cCanvas.height - ((c.high - min) / range) * (cCanvas.height - 30) - 15;
+                let yLow = cCanvas.height - ((c.low - min) / range) * (cCanvas.height - 30) - 15;
+                let yOpen = cCanvas.height - ((c.open - min) / range) * (cCanvas.height - 30) - 15;
+                let yClose = cCanvas.height - ((c.close - min) / range) * (cCanvas.height - 30) - 15;
 
                 let isGreen = c.close >= c.open;
                 let color = isGreen ? '#2ecc71' : '#e74c3c';
 
-                // Рисуем фитиль (тень)
-                ctx.beginPath();
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 1.5;
-                ctx.moveTo(x, yHigh);
-                ctx.lineTo(x, yLow);
-                ctx.stroke();
+                cContext.beginPath();
+                cContext.strokeStyle = color;
+                cContext.lineWidth = 1.5;
+                cContext.moveTo(x, yHigh);
+                cContext.lineTo(x, yLow);
+                cContext.stroke();
 
-                // Рисуем тело свечи
                 let bodyY = Math.min(yOpen, yClose);
-                let bodyHeight = Math.max(Math.abs(yOpen - yClose), 2); // Минимальная высота 2px для видимости доджи
+                let bodyHeight = Math.max(Math.abs(yOpen - yClose), 2);
 
-                ctx.fillStyle = color;
-                ctx.fillRect(x - candleWidth / 2, bodyY, candleWidth, bodyHeight);
+                cContext.fillStyle = color;
+                cContext.fillRect(x - candleWidth / 2, bodyY, candleWidth, bodyHeight);
             });
+        }
+
+        function drawAllCharts() {
+            drawCandlesOnContext(ctx, canvas, 20);
+            if (document.getElementById('chart-modal').classList.contains('active')) {
+                drawCandlesOnContext(modalCtx, modalCanvas, 40);
+            }
+        }
+
+        function openModalChart() {
+            document.getElementById('modal-pair-title').innerText = currentPairName;
+            document.getElementById('chart-modal').classList.add('active');
+            resizeCanvas();
+            drawAllCharts();
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function closeModalChart() {
+            document.getElementById('chart-modal').classList.remove('active');
+            tg.HapticFeedback.impactOccurred('light');
         }
 
         tg.CloudStorage.getItem('user_balance', (err, value) => {
@@ -314,6 +421,7 @@
 
         function fetchPrice() {
             const priceEl = document.getElementById('btc-price');
+            const modalPriceEl = document.getElementById('modal-btc-price');
             const statusEl = document.getElementById('status');
 
             fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${currentSymbol}`)
@@ -321,29 +429,21 @@
                 .then(data => {
                     let price = parseFloat(data.price);
                     currentPrice = price;
-                    priceEl.innerText = `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    let formatted = `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    priceEl.innerText = formatted;
+                    modalPriceEl.innerText = formatted;
                     statusEl.innerText = "🟢 Терминал активен";
 
-                    // Логика формирования японских свечей в реальном времени
                     if (candles.length === 0 || candles[candles.length - 1].closed) {
-                        // Создаем новую свечу
-                        candles.push({
-                            open: price,
-                            high: price,
-                            low: price,
-                            close: price,
-                            closed: false
-                        });
-                        if (candles.length > 25) candles.shift();
+                        candles.push({ open: price, high: price, low: price, close: price, closed: false });
+                        if (candles.length > 50) candles.shift();
                     } else {
-                        // Обновляем текущую свечу
                         let currentCandle = candles[candles.length - 1];
                         currentCandle.close = price;
                         if (price > currentCandle.high) currentCandle.high = price;
                         if (price < currentCandle.low) currentCandle.low = price;
                     }
 
-                    // Каждые 3 секунды фиксируем свечу и открываем следующую
                     if (!window.candleTimer) {
                         window.candleTimer = setInterval(() => {
                             if (candles.length > 0) {
@@ -352,7 +452,7 @@
                         }, 3000);
                     }
 
-                    drawCandles();
+                    drawAllCharts();
                 })
                 .catch(err => {
                     statusEl.innerText = "⚠️ Ошибка связи с биржей";
