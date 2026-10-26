@@ -105,8 +105,8 @@
             border: none;
             border-radius: 6px;
             color: #fff;
-            padding: 3px 8px;
-            font-size: 11px;
+            padding: 4px 10px;
+            font-size: 12px;
             cursor: pointer;
             font-weight: bold;
         }
@@ -164,6 +164,7 @@
             flex: 1;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
+            display: block;
         }
 
         .buttons-container {
@@ -249,8 +250,8 @@
         
         <div class="chart-header">
             <div class="zoom-group">
-                <button class="action-btn" onclick="zoomIn()">🔍+</button>
-                <button class="action-btn" onclick="zoomOut()">🔍-</button>
+                <button class="action-btn" onclick="zoomIn()">➕ Приблизить</button>
+                <button class="action-btn" onclick="zoomOut()">➖ Отдалить</button>
             </div>
             <button class="action-btn" onclick="openModalChart()">📊 На весь экран</button>
         </div>
@@ -267,8 +268,8 @@
                 <div style="color: #4eef90; font-size: 18px; font-weight: bold;" id="modal-btc-price">$--,---.--</div>
             </div>
             <div style="display: flex; gap: 6px; align-items: center;">
-                <button class="action-btn" onclick="zoomModalIn()">🔍+</button>
-                <button class="action-btn" onclick="zoomModalOut()">🔍-</button>
+                <button class="action-btn" onclick="zoomModalIn()">➕</button>
+                <button class="action-btn" onclick="zoomModalOut()">➖</button>
                 <button class="close-btn" onclick="closeModalChart()">✕</button>
             </div>
         </div>
@@ -305,7 +306,6 @@
         let candles = [];
         let priceInterval = null;
 
-        // Параметры масштаба (количество видимых свечей на экране)
         let visibleCandlesMain = 20;
         let visibleCandlesModal = 40;
 
@@ -338,7 +338,7 @@
         }
 
         function zoomOut() {
-            if (visibleCandlesMain < 50) {
+            if (visibleCandlesMain < 60) {
                 visibleCandlesMain += 4;
                 drawAllCharts();
                 tg.HapticFeedback.impactOccurred('light');
@@ -354,7 +354,7 @@
         }
 
         function zoomModalOut() {
-            if (visibleCandlesModal < 90) {
+            if (visibleCandlesModal < 100) {
                 visibleCandlesModal += 8;
                 drawAllCharts();
                 tg.HapticFeedback.impactOccurred('light');
@@ -411,8 +411,13 @@
         function openModalChart() {
             document.getElementById('modal-pair-title').innerText = currentPairName;
             document.getElementById('chart-modal').classList.add('active');
-            resizeCanvas();
-            drawAllCharts();
+            
+            // Даем браузеру время показать модальное окно, затем пересчитываем размер canvas
+            setTimeout(() => {
+                resizeCanvas();
+                drawAllCharts();
+            }, 50);
+
             tg.HapticFeedback.impactOccurred('light');
         }
 
