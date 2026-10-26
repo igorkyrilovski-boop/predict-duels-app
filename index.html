@@ -79,7 +79,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .price-text {
@@ -88,16 +88,34 @@
             color: #4eef90;
         }
 
-        .chart-header {
+        /* Панель таймфреймов и индикаторов */
+        .toolbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 4px;
+            font-size: 11px;
         }
 
-        .zoom-group {
+        .tf-group, .zoom-group {
             display: flex;
             gap: 4px;
+        }
+
+        .tf-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 4px;
+            color: #aaa;
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .tf-btn.active {
+            background: #f39c12;
+            color: white;
         }
 
         .action-btn {
@@ -105,8 +123,8 @@
             border: none;
             border-radius: 6px;
             color: #fff;
-            padding: 4px 10px;
-            font-size: 12px;
+            padding: 3px 8px;
+            font-size: 11px;
             cursor: pointer;
             font-weight: bold;
         }
@@ -117,7 +135,7 @@
 
         #price-canvas {
             width: 100%;
-            height: 140px;
+            height: 130px;
             display: block;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
@@ -244,20 +262,30 @@
             <button class="pair-btn" onclick="changePair('SOLUSDT', 'SOL / USDT')">SOL</button>
         </div>
         <div class="header-row">
-            <span style="font-weight: bold; font-size: 14px;" id="pair-title">BTC / USDT</span>
+            <span style="font-weight: bold; font-size: 13px;" id="pair-title">BTC / USDT</span>
             <div class="price-text" id="btc-price">$--,---.--</div>
         </div>
         
-        <div class="chart-header">
-            <div class="zoom-group">
-                <button class="action-btn" onclick="zoomIn()">➕ Приблизить</button>
-                <button class="action-btn" onclick="zoomOut()">➖ Отдалить</button>
+        <!-- Панель управления таймфреймами и индикаторами -->
+        <div class="toolbar">
+            <div class="tf-group">
+                <span style="color:#888; align-self:center;">ТФ:</span>
+                <button class="tf-btn active" onclick="setCandleTime(2000, this)">1s</button>
+                <button class="tf-btn" onclick="setCandleTime(5000, this)">3s</button>
+                <button class="tf-btn" onclick="setCandleTime(10000, this)">5s</button>
             </div>
-            <button class="action-btn" onclick="openModalChart()">📊 На весь экран</button>
+            <div class="zoom-group">
+                <button class="action-btn" onclick="zoomIn()">➕</button>
+                <button class="action-btn" onclick="zoomOut()">➖</button>
+                <button class="action-btn" onclick="openModalChart()">📊</button>
+            </div>
         </div>
         
         <canvas id="price-canvas"></canvas>
-        <div class="status" id="status">Подключение к бирже...</div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; color:#f1c40f; margin-top:2px;">
+            <span>Индикатор: SMA (5)</span>
+            <span id="status">Подключение...</span>
+        </div>
     </div>
 
     <!-- Полноэкранное модальное окно -->
@@ -304,7 +332,8 @@
         let currentPairName = 'BTC / USDT';
         let currentPrice = 0;
         let candles = [];
-        let priceInterval = null;
+        let candleDuration = 2000; // Длительность свечи таймфрейма по умолчанию (2 сек)
+        let candleTimer = null;
 
         let visibleCandlesMain = 25;
         let visibleCandlesModal = 45;
@@ -319,7 +348,7 @@
 
         function resizeCanvas() {
             canvas.width = canvas.parentElement.clientWidth - 28;
-            canvas.height = 140;
+            canvas.height = 130;
 
             if (document.getElementById('chart-modal').classList.contains('active')) {
                 modalCanvas.width = modalCanvas.parentElement.clientWidth - 30;
@@ -328,6 +357,25 @@
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
+
+        function setCandleTime(ms, btn) {
+            candleDuration = ms;
+            document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            candles = []; // Сбрасываем свечи под новый таймфрейм
+            if (candleTimer) clearInterval(candleTimer);
+            startCandleInterval();
+            tg.HapticFeedback.selectionChanged();
+        }
+
+        function startCandleInterval() {
+            candleTimer = setInterval(() => {
+                if (candles.length > 0) {
+                    candles[candles.length - 1].closed = true;
+                }
+            }, candleDuration);
+        }
+        startCandleInterval();
 
         function zoomIn() {
             if (visibleCandlesMain > 10) {
@@ -361,6 +409,7 @@
             }
         }
 
+        // Отрисовка свечей и индикатора SMA
         function drawCandlesOnContext(cContext, cCanvas, maxCandles) {
             cContext.clearRect(0, 0, cCanvas.width, cCanvas.height);
             if (candles.length === 0) return;
@@ -372,7 +421,6 @@
             let min = Math.min(...prices);
             let max = Math.max(...prices);
             
-            // Добавляем вертикальный отступ 10%, чтобы свечи не упирались в края
             let range = max - min;
             if (range === 0) range = 1;
             min -= range * 0.1;
@@ -382,6 +430,7 @@
             let slotWidth = cCanvas.width / maxCandles;
             let candleWidth = Math.max(3, slotWidth - 4);
 
+            // 1. Рисуем свечи
             displayCandles.forEach((c, i) => {
                 let x = i * slotWidth + slotWidth / 2;
                 
@@ -408,6 +457,33 @@
                 cContext.fillStyle = color;
                 cContext.fillRect(x - candleWidth / 2, bodyY, candleWidth, bodyHeight);
             });
+
+            // 2. Рассчитываем и рисуем индикатор SMA (период 5)
+            let smaPeriod = 5;
+            let smaPoints = [];
+            for (let i = 0; i < displayCandles.length; i++) {
+                if (i >= smaPeriod - 1) {
+                    let sum = 0;
+                    for (let j = 0; j < smaPeriod; j++) {
+                        sum += displayCandles[i - j].close;
+                    }
+                    let avg = sum / smaPeriod;
+                    let x = i * slotWidth + slotWidth / 2;
+                    let y = cCanvas.height - ((avg - min) / range) * (cCanvas.height - 20) - 10;
+                    smaPoints.push({x, y});
+                }
+            }
+
+            if (smaPoints.length > 1) {
+                cContext.beginPath();
+                cContext.strokeStyle = '#f1c40f'; // Золотистый цвет линии SMA
+                cContext.lineWidth = 2;
+                cContext.moveTo(smaPoints[0].x, smaPoints[0].y);
+                for (let p = 1; p < smaPoints.length; p++) {
+                    cContext.lineTo(smaPoints[p].x, smaPoints[p].y);
+                }
+                cContext.stroke();
+            }
         }
 
         function drawAllCharts() {
@@ -420,12 +496,10 @@
         function openModalChart() {
             document.getElementById('modal-pair-title').innerText = currentPairName;
             document.getElementById('chart-modal').classList.add('active');
-            
             setTimeout(() => {
                 resizeCanvas();
                 drawAllCharts();
             }, 50);
-
             tg.HapticFeedback.impactOccurred('light');
         }
 
@@ -497,7 +571,7 @@
                     let formatted = `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     priceEl.innerText = formatted;
                     modalPriceEl.innerText = formatted;
-                    statusEl.innerText = "🟢 Терминал активен";
+                    statusEl.innerText = "🟢 Активен";
 
                     if (candles.length === 0 || candles[candles.length - 1].closed) {
                         candles.push({ open: price, high: price, low: price, close: price, closed: false });
@@ -509,23 +583,15 @@
                         if (price < currentCandle.low) currentCandle.low = price;
                     }
 
-                    if (!window.candleTimer) {
-                        window.candleTimer = setInterval(() => {
-                            if (candles.length > 0) {
-                                candles[candles.length - 1].closed = true;
-                            }
-                        }, 3000);
-                    }
-
                     drawAllCharts();
                 })
                 .catch(err => {
-                    statusEl.innerText = "⚠️ Ошибка связи с биржей";
+                    statusEl.innerText = "⚠️ Ошибка связи";
                 });
         }
 
         fetchPrice();
-        priceInterval = setInterval(fetchPrice, 1200);
+        setInterval(fetchPrice, 1200);
 
         function makeBet(direction) {
             if (isPlaying) return;
