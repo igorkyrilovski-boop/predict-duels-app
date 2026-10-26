@@ -88,7 +88,6 @@
             color: #4eef90;
         }
 
-        /* Холст для графика */
         #price-canvas {
             width: 100%;
             height: 150px;
@@ -169,15 +168,14 @@
 
     <div class="card">
         <div class="pair-container">
-            <button class="pair-btn active" onclick="changePair('btcusdt', 'BTC / USDT')">BTC</button>
-            <button class="pair-btn" onclick="changePair('ethusdt', 'ETH / USDT')">ETH</button>
-            <button class="pair-btn" onclick="changePair('solusdt', 'SOL / USDT')">SOL</button>
+            <button class="pair-btn active" onclick="changePair('BTCUSDT', 'BTC / USDT')">BTC</button>
+            <button class="pair-btn" onclick="changePair('ETHUSDT', 'ETH / USDT')">ETH</button>
+            <button class="pair-btn" onclick="changePair('SOLUSDT', 'SOL / USDT')">SOL</button>
         </div>
         <div class="header-row">
             <span style="font-weight: bold; font-size: 14px;" id="pair-title">BTC / USDT</span>
             <div class="price-text" id="btc-price">$--,---.--</div>
         </div>
-        <!-- Заменяем библиотеку на надежный холст -->
         <canvas id="price-canvas"></canvas>
         <div class="status" id="status">Подключение к бирже...</div>
     </div>
@@ -185,7 +183,6 @@
     <div class="card" id="game-card">
         <p id="game-instruction" style="margin: 0 0 4px 0; font-size: 13px;">Сумма ставки и прогноз на <b>60 секунд</b>:</p>
         
-        <!-- Выбор суммы ставки -->
         <div class="buttons-container" id="bet-selection">
             <button class="bet-btn" onclick="setBet(50)">50</button>
             <button class="bet-btn active" onclick="setBet(100)">100</button>
@@ -207,15 +204,14 @@
         let balance = 1000;
         let currentBet = 100;
         let isPlaying = false;
-        let currentSymbol = 'btcusdt';
+        let currentSymbol = 'BTCUSDT';
         let currentPairName = 'BTC / USDT';
-        let ws = null;
         let currentPrice = 0;
         let priceHistory = [];
+        let priceInterval = null;
 
         let stats = { total: 0, wins: 0, losses: 0 };
 
-        // Настройка холста графика
         const canvas = document.getElementById('price-canvas');
         const ctx = canvas.getContext('2d');
 
@@ -246,7 +242,6 @@
             }
             ctx.stroke();
 
-            // Заливка под графиком
             ctx.lineTo(canvas.width, canvas.height);
             ctx.lineTo(0, canvas.height);
             ctx.fillStyle = 'rgba(46, 204, 113, 0.1)';
@@ -293,40 +288,40 @@
 
             document.querySelectorAll('.pair-btn').forEach(btn => {
                 btn.classList.remove('active');
-                if (btn.innerText.includes(symbol.replace('usdt', '').toUpperCase())) {
+                if (btn.innerText === symbol.replace('USDT', '')) {
                     btn.classList.add('active');
                 }
             });
 
             priceHistory = [];
-            connectWebSocket();
+            fetchPrice();
             tg.HapticFeedback.selectionChanged();
         }
 
-        function connectWebSocket() {
-            if (ws) ws.close();
+        function fetchPrice() {
             const priceEl = document.getElementById('btc-price');
             const statusEl = document.getElementById('status');
-            statusEl.innerText = "Подключение...";
 
-            ws = new WebSocket(`wss://stream.binance.com:9443/ws/${currentSymbol}@trade`);
+            fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${currentSymbol}`)
+                .then(res => res.json())
+                .then(data => {
+                    currentPrice = parseFloat(data.price);
+                    priceEl.innerText = `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    statusEl.innerText = "🟢 Терминал активен";
 
-            ws.onopen = () => { statusEl.innerText = "🟢 Рынок в реальном времени"; };
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                currentPrice = parseFloat(data.p);
-
-                priceEl.innerText = `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-                priceHistory.push(currentPrice);
-                if (priceHistory.length > 50) priceHistory.shift(); // Оставляем последние 50 точек
-                drawChart();
-            };
+                    priceHistory.push(currentPrice);
+                    if (priceHistory.length > 50) priceHistory.shift();
+                    drawChart();
+                })
+                .catch(err => {
+                    statusEl.innerText = "⚠️ Ошибка связи с биржей";
+                });
         }
 
-        connectWebSocket();
+        fetchPrice();
+        priceInterval = setInterval(fetchPrice, 1500); // Обновление цены каждые 1.5 секунды
 
-7        function makeBet(direction) {
+        function makeBet(direction) {
             if (isPlaying) return;
             if (balance < currentBet) {
                 alert("Недостаточно монет на балансе!");
