@@ -8,7 +8,7 @@
     <style>
         body {
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-            background-color: #0c0d10;
+            background-color: var(--bg-color, #0c0d10);
             color: #d1d5db;
             margin: 0;
             padding: 8px;
@@ -30,11 +30,23 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
 
-        .balance-container {
-            font-size: 15px;
-            font-weight: 700;
+        .profile-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            font-weight: bold;
             color: #f39c12;
-            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .rank-badge {
+            background: rgba(243, 156, 18, 0.15);
+            border: 1px solid #f39c12;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            color: #f39c12;
         }
 
         .stats-grid {
@@ -141,21 +153,16 @@
             font-weight: bold;
         }
 
-        .action-btn:active {
-            background: #2a2e3d;
-        }
-
-        /* Контейнер графика MT5 */
         #price-canvas {
             width: 100%;
-            height: 160px;
+            height: 140px;
             display: block;
-            background: #000000;
+            background: var(--chart-bg, #000000);
             border: 1px solid #232733;
             border-radius: 4px;
         }
 
-        /* Полноэкранный терминал */
+        /* Модальные окна */
         .modal {
             display: none;
             position: fixed;
@@ -194,10 +201,37 @@
         #modal-canvas {
             width: 100%;
             flex: 1;
-            background: #000000;
+            background: var(--chart-bg, #000000);
             border: 1px solid #232733;
             border-radius: 6px;
             display: block;
+        }
+
+        /* Магазин кастомизации */
+        .shop-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(12, 13, 16, 0.95);
+            z-index: 1000;
+            flex-direction: column;
+            padding: 15px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .shop-modal.active { display: flex; }
+        .shop-item {
+            background: #1e222d;
+            border: 1px solid #2a2e3d;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .buttons-container {
@@ -210,68 +244,57 @@
 
         .btn {
             flex: 1;
-            padding: 11px;
+            padding: 10px;
             border: none;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 800;
             cursor: pointer;
-            letter-spacing: 0.5px;
-            transition: transform 0.1s, opacity 0.2s;
+            transition: transform 0.1s;
         }
-
-        .btn:active {
-            transform: scale(0.97);
-        }
+        .btn:active { transform: scale(0.97); }
 
         .bet-btn {
             background-color: #1e222d;
             border: 1px solid #2a2e3d;
             color: #8e95a5;
             font-size: 11px;
-            padding: 6px 2px;
+            padding: 5px 2px;
             flex: 1;
             border-radius: 5px;
             font-weight: bold;
             cursor: pointer;
             text-align: center;
         }
+        .bet-btn.active { background-color: #f39c12; color: white; border-color: #f39c12; }
 
-        .bet-btn.active {
-            background-color: #f39c12;
-            color: white;
-            border-color: #f39c12;
-        }
-
-        .btn-up {
-            background-color: #00e676;
-            color: #000000;
-        }
-
-        .btn-down {
-            background-color: #ff5252;
-            color: #ffffff;
-        }
+        .btn-up { background-color: #00e676; color: #000000; }
+        .btn-down { background-color: #ff5252; color: #ffffff; }
 
         .status-bar {
             display: flex;
             justify-content: space-between;
             font-size: 10px;
             color: #5d6578;
-            margin-top: 4px;
+            margin-top: 2px;
             font-family: monospace;
         }
     </style>
 </head>
-<body>
+<body style="--bg-color: #0c0d10; --chart-bg: #000000;">
 
     <div class="card">
-        <div class="balance-container">💰 БАЛАНС: <span id="balance">1000</span> USD</div>
-        <div class="stats-grid">
-            <div class="stats-item">Сделок: <span id="stat-total">0</span></div>
-            <div class="stats-item">Побед: <span id="stat-wins">0</span></div>
-            <div class="stats-item">Поражений: <span id="stat-losses">0</span></div>
-            <div class="stats-item">Винрейт: <span id="stat-winrate">0%</span></div>
+        <div class="profile-header">
+            <div>💰 <span id="balance">1000</span> USD | Ур. <span id="user-level">1</span> (XP: <span id="user-xp">0</span>)</div>
+            <div class="rank-badge" id="user-rank">Крипто-новичок</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top:2px;">
+            <div class="stats-grid" style="flex:1; border:none; margin:0; padding:0;">
+                <div>Матчей: <span id="stat-total">0</span></div>
+                <div>Побед: <span id="stat-wins">0</span></div>
+                <div>Винрейт: <span id="stat-winrate">0%</span></div>
+            </div>
+            <button class="action-btn" onclick="openShop()" style="font-size:10px; background:#f39c12; color:#000;">🛒 Магазин</button>
         </div>
     </div>
 
@@ -283,16 +306,15 @@
         </div>
         
         <div class="header-row">
-            <span class="symbol-title" id="pair-title">BTC / USDT (M1)</span>
+            <span class="symbol-title" id="pair-title">BTC / USDT</span>
             <div class="price-text" id="btc-price">0.00</div>
         </div>
         
         <div class="toolbar">
             <div class="tf-group">
-                <span style="color:#5d6578; align-self:center; font-size:10px;">ТФ:</span>
+                <span style="color:#5d6578; font-size:10px;">ТФ:</span>
                 <button class="tf-btn active" onclick="setCandleTime(2000, this)">1s</button>
-                <button class="tf-btn" onclick="setCandleTime(4000, this)">3s</button>
-                <button class="tf-btn" onclick="setCandleTime(8000, this)">5s</button>
+                <button class="tf-btn" onclick="setCandleTime(5000, this)">3s</button>
             </div>
             <div class="zoom-group">
                 <button class="action-btn" onclick="zoomIn()">🔍+</button>
@@ -303,12 +325,43 @@
         
         <canvas id="price-canvas"></canvas>
         <div class="status-bar">
-            <span>IND: SMA(5)</span>
-            <span id="status">CONNECTING...</span>
+            <span>SMA(5)</span>
+            <span id="status">MT5 ONLINE</span>
         </div>
     </div>
 
-    <!-- Полноэкранное окно MT5 -->
+    <!-- Модалка Магазина -->
+    <div class="shop-modal" id="shop-modal">
+        <div class="modal-header">
+            <h3 style="margin:0; color:#f39c12;">🛒 Магазин тем и стилей</h3>
+            <button class="close-btn" onclick="closeShop()">✕</button>
+        </div>
+        <p style="font-size:12px; color:#8e95a5;">Покупайте уникальные темы оформления графиков за монеты!</p>
+        
+        <div class="shop-item">
+            <div>
+                <strong> cyberpunk-тема (Неон)</strong>
+                <div style="font-size:11px; color:#8e95a5;">Темно-фиолетовый фон графиков</div>
+            </div>
+            <button class="action-btn" onclick="buyTheme('cyberpunk', '#130f26', '#00f2fe')" style="background:#2962ff;">Купить (500)</button>
+        </div>
+        <div class="shop-item">
+            <div>
+                <strong> ️ Matrix-тема</strong>
+                <div style="font-size:11px; color:#8e95a5;">Классический зеленый хакерский фон</div>
+            </div>
+            <button class="action-btn" onclick="buyTheme('matrix', '#021005', '#00ff66')" style="background:#2962ff;">Купить (500)</button>
+        </div>
+        <div class="shop-item">
+            <div>
+                <strong> Стандартная тема (MT5)</strong>
+                <div style="font-size:11px; color:#8e95a5;">Классический черный терминал</div>
+            </div>
+            <button class="action-btn" onclick="buyTheme('default', '#0c0d10', '#000000')" style="background:#2ecc71;">Выбрать</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно FULL -->
     <div class="modal" id="chart-modal">
         <div class="modal-header">
             <div>
@@ -325,7 +378,7 @@
     </div>
 
     <div class="card" id="game-card">
-        <p id="game-instruction" style="margin: 0 0 4px 0; font-size: 12px; text-align: center; color: #8e95a5;">Объем ордера и прогноз на <b>60 секунд</b>:</p>
+        <p id="game-instruction" style="margin: 0 0 4px 0; font-size: 12px; text-align: center; color: #8e95a5;">Прогноз на <b>60 секунд</b>:</p>
         
         <div class="buttons-container" id="bet-selection">
             <button class="bet-btn" onclick="setBet(50)">50$</button>
@@ -346,31 +399,31 @@
         tg.expand();
 
         let balance = 1000;
+        let xp = 0;
+        let level = 1;
+        let rank = "Крипто-новичок";
+        let currentTheme = 'default';
         let currentBet = 100;
         let isPlaying = false;
         let currentSymbol = 'BTCUSDT';
         let currentPairName = 'BTC / USDT';
         let currentPrice = 0;
-        let prevPrice = 0;
         let candles = [];
         let candleDuration = 2000;
         let candleTimer = null;
 
         let visibleCandlesMain = 24;
         let visibleCandlesModal = 45;
-
         let stats = { total: 0, wins: 0, losses: 0 };
 
         const canvas = document.getElementById('price-canvas');
         const ctx = canvas.getContext('2d');
-
         const modalCanvas = document.getElementById('modal-canvas');
         const modalCtx = modalCanvas.getContext('2d');
 
         function resizeCanvas() {
             canvas.width = canvas.parentElement.clientWidth - 26;
-            canvas.height = 160;
-
+            canvas.height = 140;
             if (document.getElementById('chart-modal').classList.contains('active')) {
                 modalCanvas.width = modalCanvas.parentElement.clientWidth - 20;
                 modalCanvas.height = modalCanvas.parentElement.clientHeight - 70;
@@ -379,197 +432,115 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
+        // Загрузка данных из CloudStorage
+        tg.CloudStorage.getItem('user_balance', (err, val) => { if (!err && val) balance = parseInt(val); updateUI(); });
+        tg.CloudStorage.getItem('user_xp', (err, val) => { if (!err && val) xp = parseInt(val); updateUI(); });
+        tg.CloudStorage.getItem('user_theme', (err, val) => { if (!err && val) applyTheme(val); });
+        tg.CloudStorage.getItem('user_stats', (err, val) => {
+            if (!err && val) { try { stats = JSON.parse(val); } catch(e){} }
+            updateUI();
+        });
+
+        function updateUI() {
+            // Расчет уровня по XP (каждые 300 XP = 1 уровень)
+            level = Math.floor(xp / 300) + 1;
+
+            // Ранги / звания в зависимости от уровня
+            if (level >= 10) rank = "Волк с Wall Street 🐺";
+            else if (level >= 5) rank = "Опытный трейдер 📈";
+            else if (level >= 3) rank = "Крипто-энтузиаст ⚡";
+            else rank = "Крипто-новичок 🌱";
+
+            document.getElementById('balance').innerText = balance;
+            document.getElementById('user-xp').innerText = xp;
+            document.getElementById('user-level').innerText = level;
+            document.getElementById('user-rank').innerText = rank;
+            document.getElementById('stat-total').innerText = stats.total;
+            document.getElementById('stat-wins').innerText = stats.wins;
+            document.getElementById('stat-losses').innerText = stats.losses;
+            let winrate = stats.total > 0 ? Math.round((stats.wins / stats.total) * 100) : 0;
+            document.getElementById('stat-winrate').innerText = winrate + '%';
+        }
+
+        function openShop() { document.getElementById('shop-modal').classList.add('active'); }
+        function closeShop() { document.getElementById('shop-modal').classList.remove('active'); }
+
+        function buyTheme(themeName, bgColor, chartBg) {
+            if (themeName !== 'default' && balance < 500) {
+                alert("Недостаточно монет! Нужно 500 монет.");
+                return;
+            }
+            if (themeName !== 'default') {
+                balance -= 500;
+                tg.CloudStorage.setItem('user_balance', balance.toString());
+            }
+            applyTheme(themeName, bgColor, chartBg);
+            tg.CloudStorage.setItem('user_theme', themeName);
+            closeShop();
+            updateUI();
+        }
+
+        function applyTheme(name) {
+            currentTheme = name;
+            let bg = '#0c0d10', cBg = '#000000';
+            if (name === 'cyberpunk') { bg = '#1a0b2e'; cBg = '#130f26'; }
+            if (name === 'matrix') { bg = '#011c08'; cBg = '#021005'; }
+            document.body.style.setProperty('--bg-color', bg);
+            document.body.style.setProperty('--chart-bg', cBg);
+        }
+
         function setCandleTime(ms, btn) {
             candleDuration = ms;
             document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             candles = [];
             if (candleTimer) clearInterval(candleTimer);
-            startCandleInterval();
+            candleTimer = setInterval(() => { if (candles.length > 0) candles[candles.length - 1].closed = true; }, candleDuration);
             tg.HapticFeedback.selectionChanged();
         }
 
-        function startCandleInterval() {
-            candleTimer = setInterval(() => {
-                if (candles.length > 0) {
-                    candles[candles.length - 1].closed = true;
-                }
-            }, candleDuration);
-        }
-        startCandleInterval();
+        function zoomIn() { if (visibleCandlesMain > 10) { visibleCandlesMain -= 4; drawAllCharts(); } }
+        function zoomOut() { if (visibleCandlesMain < 60) { visibleCandlesMain += 4; drawAllCharts(); } }
+        function zoomModalIn() { if (visibleCandlesModal > 15) { visibleCandlesModal -= 8; drawAllCharts(); } }
+        function zoomModalOut() { if (visibleCandlesModal < 100) { visibleCandlesModal += 8; drawAllCharts(); } }
 
-        function zoomIn() {
-            if (visibleCandlesMain > 10) {
-                visibleCandlesMain -= 4;
-                drawAllCharts();
-                tg.HapticFeedback.impactOccurred('light');
-            }
-        }
-
-        function zoomOut() {
-            if (visibleCandlesMain < 60) {
-                visibleCandlesMain += 4;
-                drawAllCharts();
-                tg.HapticFeedback.impactOccurred('light');
-            }
-        }
-
-        function zoomModalIn() {
-            if (visibleCandlesModal > 15) {
-                visibleCandlesModal -= 8;
-                drawAllCharts();
-                tg.HapticFeedback.impactOccurred('light');
-            }
-        }
-
-        function zoomModalOut() {
-            if (visibleCandlesModal < 100) {
-                visibleCandlesModal += 8;
-                drawAllCharts();
-                tg.HapticFeedback.impactOccurred('light');
-            }
-        }
-
-        // РЕНДЕРИНГ ГРАФИКА В СТИЛЕ METATRADER 5
         function drawCandlesOnContext(cContext, cCanvas, maxCandles) {
-            const width = cCanvas.width;
-            const height = cCanvas.height;
-            const priceScaleWidth = 55; // Правая шкала цен как в MT5
-            const chartWidth = width - priceScaleWidth;
-
-            cContext.fillStyle = "#000000";
+            const width = cCanvas.width, height = cCanvas.height, priceScaleWidth = 55, chartWidth = width - priceScaleWidth;
+            cContext.fillStyle = getComputedStyle(document.body).getPropertyValue('--chart-bg') || '#000';
             cContext.fillRect(0, 0, width, height);
-
             if (candles.length === 0) return;
 
             let displayCandles = candles.slice(-maxCandles);
-
             let prices = [];
             displayCandles.forEach(c => prices.push(c.high, c.low));
-            let min = Math.min(...prices);
-            let max = Math.max(...prices);
-            
-            let range = max - min;
-            if (range === 0) range = 1;
-            min -= range * 0.08;
-            max += range * 0.08;
-            range = max - min;
+            let min = Math.min(...prices), max = Math.max(...prices);
+            let range = max - min || 1;
+            min -= range * 0.08; max += range * 0.08; range = max - min;
 
-            // 1. Отрисовка фоновой сетки MT5 (Grid)
-            cContext.strokeStyle = "#161920";
-            cContext.lineWidth = 1;
-
-            // Горизонтальные линии сетки + метки цен
-            const gridRows = 5;
-            cContext.font = "9px monospace";
-            cContext.fillStyle = "#434a59";
-
-            for (let r = 0; r <= gridRows; r++) {
-                let y = (height - 20) * (r / gridRows) + 10;
-                cContext.beginPath();
-                cContext.moveTo(0, y);
-                cContext.lineTo(chartWidth, y);
-                cContext.stroke();
-
-                let priceAtY = max - (r / gridRows) * range;
-                cContext.fillText(priceAtY.toFixed(2), chartWidth + 5, y + 3);
+            // Сетка
+            cContext.strokeStyle = "#161920"; cContext.lineWidth = 1;
+            for (let r = 0; r <= 5; r++) {
+                let y = (height - 20) * (r / 5) + 10;
+                cContext.beginPath(); cContext.moveTo(0, y); cContext.lineTo(chartWidth, y); cContext.stroke();
             }
 
-            // Вертикальные линии сетки
             let slotWidth = chartWidth / maxCandles;
-            for (let i = 0; i < maxCandles; i += 5) {
-                let x = i * slotWidth;
-                cContext.beginPath();
-                cContext.moveTo(x, 0);
-                cContext.lineTo(x, height);
-                cContext.stroke();
-            }
-
-            // Шкала разделения справой стороны
-            cContext.strokeStyle = "#232733";
-            cContext.beginPath();
-            cContext.moveTo(chartWidth, 0);
-            cContext.lineTo(chartWidth, height);
-            cContext.stroke();
-
             let candleWidth = Math.max(3, slotWidth - 3);
 
-            // 2. Отрисовка японских свечей MT5
             displayCandles.forEach((c, i) => {
                 let x = i * slotWidth + slotWidth / 2;
-                
                 let yHigh = height - ((c.high - min) / range) * (height - 20) - 10;
                 let yLow = height - ((c.low - min) / range) * (height - 20) - 10;
                 let yOpen = height - ((c.open - min) / range) * (height - 20) - 10;
                 let yClose = height - ((c.close - min) / range) * (height - 20) - 10;
-
                 let isGreen = c.close >= c.open;
-                // Классический стилевой стиль MetaTrader: салатово-зелёные (бычьи) и ярко-красные (медвежьи)
                 let color = isGreen ? "#00e676" : "#ff5252";
 
-                // Тень (фитиль)
-                cContext.beginPath();
-                cContext.strokeStyle = color;
-                cContext.lineWidth = 1.2;
-                cContext.moveTo(x, yHigh);
-                cContext.lineTo(x, yLow);
-                cContext.stroke();
-
-                // Тело свечи
-                let bodyY = Math.min(yOpen, yClose);
-                let bodyHeight = Math.max(Math.abs(yOpen - yClose), 2);
-
+                cContext.beginPath(); cContext.strokeStyle = color; cContext.lineWidth = 1.2;
+                cContext.moveTo(x, yHigh); cContext.lineTo(x, yLow); cContext.stroke();
                 cContext.fillStyle = color;
-                cContext.fillRect(x - candleWidth / 2, bodyY, candleWidth, bodyHeight);
+                cContext.fillRect(x - candleWidth / 2, Math.min(yOpen, yClose), candleWidth, Math.max(Math.abs(yOpen - yClose), 2));
             });
-
-            // 3. Индикатор SMA(5) золотистой линией
-            let smaPeriod = 5;
-            let smaPoints = [];
-            for (let i = 0; i < displayCandles.length; i++) {
-                if (i >= smaPeriod - 1) {
-                    let sum = 0;
-                    for (let j = 0; j < smaPeriod; j++) {
-                        sum += displayCandles[i - j].close;
-                    }
-                    let avg = sum / smaPeriod;
-                    let x = i * slotWidth + slotWidth / 2;
-                    let y = height - ((avg - min) / range) * (height - 20) - 10;
-                    smaPoints.push({x, y});
-                }
-            }
-
-            if (smaPoints.length > 1) {
-                cContext.beginPath();
-                cContext.strokeStyle = "#ffb300";
-                cContext.lineWidth = 1.8;
-                cContext.moveTo(smaPoints[0].x, smaPoints[0].y);
-                for (let p = 1; p < smaPoints.length; p++) {
-                    cContext.lineTo(smaPoints[p].x, smaPoints[p].y);
-                }
-                cContext.stroke();
-            }
-
-            // 4. Пунктирная линия текущей цены (Bid/Ask Line в MT5)
-            if (currentPrice > 0) {
-                let currentY = height - ((currentPrice - min) / range) * (height - 20) - 10;
-                
-                cContext.setLineDash([4, 4]);
-                cContext.strokeStyle = "#00e676";
-                cContext.lineWidth = 1;
-                cContext.beginPath();
-                cContext.moveTo(0, currentY);
-                cContext.lineTo(chartWidth, currentY);
-                cContext.stroke();
-                cContext.setLineDash([]); // Сброс пунктира
-
-                // Выделенная плашка цены справа на шкале
-                cContext.fillStyle = "#00e676";
-                cContext.fillRect(chartWidth, currentY - 7, priceScaleWidth, 14);
-                cContext.fillStyle = "#000000";
-                cContext.font = "bold 9px monospace";
-                cContext.fillText(currentPrice.toFixed(1), chartWidth + 4, currentY + 3);
-            }
         }
 
         function drawAllCharts() {
@@ -582,144 +553,60 @@
         function openModalChart() {
             document.getElementById('modal-pair-title').innerText = currentPairName;
             document.getElementById('chart-modal').classList.add('active');
-            setTimeout(() => {
-                resizeCanvas();
-                drawAllCharts();
-            }, 50);
-            tg.HapticFeedback.impactOccurred('light');
+            setTimeout(() => { resizeCanvas(); drawAllCharts(); }, 50);
         }
-
-        function closeModalChart() {
-            document.getElementById('chart-modal').classList.remove('active');
-            tg.HapticFeedback.impactOccurred('light');
-        }
-
-        tg.CloudStorage.getItem('user_balance', (err, value) => {
-            if (!err && value) balance = parseInt(value);
-            else tg.CloudStorage.setItem('user_balance', '1000');
-            updateUI();
-        });
-
-        tg.CloudStorage.getItem('user_stats', (err, value) => {
-            if (!err && value) {
-                try { stats = JSON.parse(value); } catch(e) {}
-            }
-            updateUI();
-        });
-
-        function updateUI() {
-            document.getElementById('balance').innerText = balance;
-            document.getElementById('stat-total').innerText = stats.total;
-            document.getElementById('stat-wins').innerText = stats.wins;
-            document.getElementById('stat-losses').innerText = stats.losses;
-            let winrate = stats.total > 0 ? Math.round((stats.wins / stats.total) * 100) : 0;
-            document.getElementById('stat-winrate').innerText = winrate + '%';
-        }
+        function closeModalChart() { document.getElementById('chart-modal').classList.remove('active'); }
 
         function setBet(amount) {
-            if (isPlaying) return;
             currentBet = amount;
             document.querySelectorAll('.bet-btn').forEach(btn => {
                 btn.classList.remove('active');
-                if (parseInt(btn.innerText) === amount + '$') btn.classList.add('active');
+                if (parseInt(btn.innerText) === amount) btn.classList.add('active');
             });
-            tg.HapticFeedback.selectionChanged();
         }
 
         function changePair(symbol, pairName) {
             if (isPlaying) return;
-            currentSymbol = symbol;
-            currentPairName = pairName;
+            currentSymbol = symbol; currentPairName = pairName;
             document.getElementById('pair-title').innerText = pairName;
-
-            document.querySelectorAll('.pair-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.innerText.includes(symbol.replace('USDT', ''))) {
-                    btn.classList.add('active');
-                }
-            });
-
-            candles = [];
-            fetchPrice();
-            tg.HapticFeedback.selectionChanged();
+            candles = []; fetchPrice();
         }
 
         function fetchPrice() {
-            const priceEl = document.getElementById('btc-price');
-            const modalPriceEl = document.getElementById('modal-btc-price');
-            const statusEl = document.getElementById('status');
-
             fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${currentSymbol}`)
                 .then(res => res.json())
                 .then(data => {
-                    let price = parseFloat(data.price);
-                    prevPrice = currentPrice;
-                    currentPrice = price;
-
-                    let formatted = `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                    priceEl.innerText = formatted;
-                    modalPriceEl.innerText = formatted;
-                    
-                    // Анимация цвета цены при росте/падении
-                    if (currentPrice >= prevPrice) {
-                        priceEl.style.color = '#00e676';
-                    } else {
-                        priceEl.style.color = '#ff5252';
-                    }
-
-                    statusEl.innerText = "ONLINE MT5";
-
+                    currentPrice = parseFloat(data.price);
+                    document.getElementById('btc-price').innerText = `$${currentPrice.toFixed(2)}`;
                     if (candles.length === 0 || candles[candles.length - 1].closed) {
-                        candles.push({ open: price, high: price, low: price, close: price, closed: false });
+                        candles.push({ open: currentPrice, high: currentPrice, low: currentPrice, close: currentPrice, closed: false });
                         if (candles.length > 100) candles.shift();
                     } else {
-                        let currentCandle = candles[candles.length - 1];
-                        currentCandle.close = price;
-                        if (price > currentCandle.high) currentCandle.high = price;
-                        if (price < currentCandle.low) currentCandle.low = price;
+                        let c = candles[candles.length - 1];
+                        c.close = currentPrice;
+                        if (currentPrice > c.high) c.high = currentPrice;
+                        if (currentPrice < c.low) c.low = currentPrice;
                     }
-
                     drawAllCharts();
-                })
-                .catch(err => {
-                    statusEl.innerText = "OFFLINE";
                 });
         }
-
-        fetchPrice();
-        setInterval(fetchPrice, 1200);
+        fetchPrice(); setInterval(fetchPrice, 1200);
 
         function makeBet(direction) {
-            if (isPlaying) return;
-            if (balance < currentBet) {
-                alert("Недостаточно средств на балансе!");
-                return;
-            }
-
-            tg.HapticFeedback.impactOccurred('medium');
-            balance -= currentBet;
-            updateUI();
+            if (isPlaying || balance < currentBet) return;
+            balance -= currentBet; updateUI();
             tg.CloudStorage.setItem('user_balance', balance.toString());
 
             isPlaying = true;
             const startPrice = currentPrice;
-            
             document.getElementById('bet-selection').style.display = 'none';
             document.querySelector('.pair-container').style.display = 'none';
-            document.getElementById('buttons-block').style.display = 'flex';
             
-            const timerStatus = document.getElementById('timer-status');
-            const instruction = document.getElementById('game-instruction');
-            
-            instruction.innerHTML = `ОРДЕР: <b>${currentPairName}</b> | СТАВКА: <b>${currentBet}$</b><br>ПРОГНОЗ: <b>${direction === 'UP' ? 'ВЫРАСТЕТ 🚀' : 'УПАДЕТ 📉'}</b> ($${startPrice.toFixed(2)})`;
-
             let timeLeft = 60;
-            timerStatus.innerText = `⏳ Экспирация сделки: ${timeLeft} сек.`;
-
+            const timerStatus = document.getElementById('timer-status');
             const interval = setInterval(() => {
                 timeLeft--;
-                timerStatus.innerText = `⏳ Экспирация сделки: ${timeLeft} сек.`;
-
+                timerStatus.innerText = `⏳ Экспирация: ${timeLeft} сек.`;
                 if (timeLeft <= 0) {
                     clearInterval(interval);
                     finishGame(startPrice, direction);
@@ -728,36 +615,29 @@
         }
 
         function finishGame(startPrice, direction) {
-            const endPrice = currentPrice;
-            let won = false;
-
-            if (direction === 'UP' && endPrice > startPrice) won = true;
-            if (direction === 'DOWN' && endPrice < startPrice) won = true;
-
+            const won = (direction === 'UP' && currentPrice > startPrice) || (direction === 'DOWN' && currentPrice < startPrice);
             stats.total++;
-            const instruction = document.getElementById('game-instruction');
-            const timerStatus = document.getElementById('timer-status');
+            xp += 50; // Начисляем 50 XP за матч
 
             if (won) {
                 stats.wins++;
-                const prize = currentBet * 2;
+                let prize = currentBet * 2;
                 balance += prize;
-                instruction.innerHTML = `🎉 ПОБЕДА! (${currentPairName}) Вход: $${startPrice.toFixed(2)} ➡️ Итог: $${endPrice.toFixed(2)}`;
-                timerStatus.innerHTML = `💰 Профит: <b>+${prize} USD</b>!`;
+                xp += 100; // Доп. XP за победу
                 tg.HapticFeedback.notificationOccurred('success');
             } else {
                 stats.losses++;
-                instruction.innerHTML = `❌ УБЫТОК. (${currentPairName}) Вход: $${startPrice.toFixed(2)} ➡️ Итог: $${endPrice.toFixed(2)}`;
-                timerStatus.innerHTML = `💸 Убыток по ордеру: -${currentBet} USD.`;
                 tg.HapticFeedback.notificationOccurred('error');
             }
 
             updateUI();
             tg.CloudStorage.setItem('user_balance', balance.toString());
+            tg.CloudStorage.setItem('user_xp', xp.toString());
             tg.CloudStorage.setItem('user_stats', JSON.stringify(stats));
 
+            // Передаем баланс и XP обратно в бота
             setTimeout(() => {
-                window.location.href = `https://t.me/predict_duels_game_bot?start=balance_${balance}`;
+                window.location.href = `https://t.me/predict_duels_game_bot?start=balance_${balance}_xp_${xp}`;
             }, 2500);
         }
     </script>
