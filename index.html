@@ -5,25 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Predict Duels Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Подключаем библиотеку графиков Lightweight Charts от TradingView -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--tg-theme-bg-color, #1a1a2e);
             color: var(--tg-theme-text-color, #ffffff);
             margin: 0;
-            padding: 12px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            height: 96vh;
+            height: 97vh;
             box-sizing: border-box;
         }
 
         .card {
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 12px 16px;
+            border-radius: 14px;
+            padding: 10px 14px;
             width: 100%;
             text-align: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
@@ -31,20 +33,20 @@
         }
 
         .balance-container {
-            font-size: 17px;
+            font-size: 16px;
             font-weight: bold;
             color: #f39c12;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .stats-grid {
             display: flex;
             justify-content: space-around;
-            margin-top: 8px;
-            font-size: 12px;
+            margin-top: 6px;
+            font-size: 11px;
             color: #cbd5e1;
             border-top: 1px solid rgba(255,255,255,0.1);
-            padding-top: 6px;
+            padding-top: 4px;
         }
 
         .stats-item span {
@@ -55,17 +57,17 @@
         .pair-container {
             display: flex;
             gap: 6px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .pair-btn {
             flex: 1;
             background: rgba(255, 255, 255, 0.1);
             border: none;
-            border-radius: 8px;
-            padding: 6px;
+            border-radius: 6px;
+            padding: 4px;
             color: #aaa;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
         }
@@ -75,18 +77,31 @@
             color: white;
         }
 
-        .price {
-            font-size: 26px;
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .price-text {
+            font-size: 20px;
             font-weight: bold;
             color: #4eef90;
-            margin: 6px 0;
+        }
+
+        /* Контейнер для графика в стиле MT5 */
+        #chart-container {
+            width: 100%;
+            height: 160px;
+            margin-bottom: 6px;
         }
 
         .buttons-container {
             display: flex;
             gap: 6px;
             width: 100%;
-            margin-top: 10px;
+            margin-top: 8px;
             box-sizing: border-box;
         }
 
@@ -94,8 +109,8 @@
             flex: 1;
             padding: 12px;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: 10px;
+            font-size: 15px;
             font-weight: bold;
             cursor: pointer;
             transition: transform 0.1s, opacity 0.2s;
@@ -108,10 +123,10 @@
         .bet-btn {
             background-color: #e2e8f0;
             color: #1e293b;
-            font-size: 13px;
-            padding: 6px 4px;
+            font-size: 12px;
+            padding: 6px 2px;
             flex: 1;
-            border-radius: 8px;
+            border-radius: 6px;
             border: none;
             font-weight: bold;
             cursor: pointer;
@@ -126,19 +141,17 @@
         .btn-up {
             background-color: #2ecc71;
             color: white;
-            font-size: 16px;
         }
 
         .btn-down {
             background-color: #e74c3c;
             color: white;
-            font-size: 16px;
         }
 
         .status {
-            font-size: 13px;
+            font-size: 12px;
             color: #aaa;
-            margin-top: 6px;
+            margin-top: 4px;
         }
     </style>
 </head>
@@ -160,13 +173,17 @@
             <button class="pair-btn" onclick="changePair('ethusdt', 'ETH / USDT')">ETH</button>
             <button class="pair-btn" onclick="changePair('solusdt', 'SOL / USDT')">SOL</button>
         </div>
-        <h2 style="margin: 2px 0; font-size: 18px;">⚔️ <span id="pair-title">BTC / USDT</span></h2>
-        <div class="price" id="btc-price">$ --,---.--</div>
-        <div class="status" id="status">Подключение к бирже...</div>
+        <div class="header-row">
+            <span style="font-weight: bold; font-size: 14px;" id="pair-title">BTC / USDT</span>
+            <div class="price-text" id="btc-price">$--,---.--</div>
+        </div>
+        <!-- Сам график -->
+        <div id="chart-container"></div>
+        <div class="status" id="status">Загрузка графического терминала...</div>
     </div>
 
     <div class="card" id="game-card">
-        <p id="game-instruction" style="margin: 0 0 6px 0; font-size: 14px;">Ставка и прогноз на <b>60 секунд</b>:</p>
+        <p id="game-instruction" style="margin: 0 0 4px 0; font-size: 13px;">Сумма ставки и прогноз на <b>60 секунд</b>:</p>
         
         <!-- Выбор суммы ставки -->
         <div class="buttons-container" id="bet-selection">
@@ -176,7 +193,7 @@
             <button class="bet-btn" onclick="setBet(500)">500</button>
         </div>
 
-        <div class="buttons-container" id="buttons-block" style="margin-top: 8px;">
+        <div class="buttons-container" id="buttons-block" style="margin-top: 6px;">
             <button class="btn btn-up" onclick="makeBet('UP')">🚀 ВЫРАСТЕТ</button>
             <button class="btn btn-down" onclick="makeBet('DOWN')">📉 УПАДЕТ</button>
         </div>
@@ -196,6 +213,36 @@
         let currentPrice = 0;
 
         let stats = { total: 0, wins: 0, losses: 0 };
+
+        // Инициализация графика TradingView Lightweight Charts
+        const chartContainer = document.getElementById('chart-container');
+        const chart = LightweightCharts.createChart(chartContainer, {
+            layout: {
+                background: { type: 'solid', color: 'transparent' },
+                textColor: '#94a3b8',
+            },
+            grid: {
+                vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
+                horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
+            },
+            timeScale: {
+                timeVisible: true,
+                secondsVisible: true,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+            },
+            rightPriceScale: {
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+            },
+            handleScroll: false,
+            handleScale: false,
+        });
+
+        const series = chart.addAreaSeries({
+            lineColor: '#2ecc71',
+            topColor: 'rgba(46, 204, 113, 0.4)',
+            bottomColor: 'rgba(46, 204, 113, 0.0)',
+            lineWidth: 2,
+        });
 
         tg.CloudStorage.getItem('user_balance', (err, value) => {
             if (!err && value) balance = parseInt(value);
@@ -242,6 +289,8 @@
                 }
             });
 
+            // Очищаем старые данные графика при смене пары
+            series.setData([]);
             connectWebSocket();
             tg.HapticFeedback.selectionChanged();
         }
@@ -250,16 +299,20 @@
             if (ws) ws.close();
             const priceEl = document.getElementById('btc-price');
             const statusEl = document.getElementById('status');
-            statusEl.innerText = "Подключение...";
+            statusEl.innerText = "Подключение к терминалу...";
 
             ws = new WebSocket(`wss://stream.binance.com:9443/ws/${currentSymbol}@trade`);
 
-            ws.onopen = () => { statusEl.innerText = "🟢 Рынок в реальном времени"; };
+            ws.onopen = () => { statusEl.innerText = "🟢 Терминал активен"; };
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 currentPrice = parseFloat(data.p);
-                let decimals = currentSymbol === 'btcusdt' ? 2 : 2;
-                priceEl.innerText = `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+                const currentTime = Math.floor(Date.now() / 1000);
+
+                priceEl.innerText = `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+                // Добавляем новую точку на график в реальном времени
+                series.update({ time: currentTime, value: currentPrice });
             };
         }
 
