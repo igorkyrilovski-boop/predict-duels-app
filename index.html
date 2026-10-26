@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Predict Duels Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Подключаем библиотеку графиков Lightweight Charts от TradingView -->
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -90,11 +88,13 @@
             color: #4eef90;
         }
 
-        /* Контейнер для графика в стиле MT5 */
-        #chart-container {
+        /* Холст для графика */
+        #price-canvas {
             width: 100%;
-            height: 160px;
-            margin-bottom: 6px;
+            height: 150px;
+            display: block;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
         }
 
         .buttons-container {
@@ -177,9 +177,9 @@
             <span style="font-weight: bold; font-size: 14px;" id="pair-title">BTC / USDT</span>
             <div class="price-text" id="btc-price">$--,---.--</div>
         </div>
-        <!-- Сам график -->
-        <div id="chart-container"></div>
-        <div class="status" id="status">Загрузка графического терминала...</div>
+        <!-- Заменяем библиотеку на надежный холст -->
+        <canvas id="price-canvas"></canvas>
+        <div class="status" id="status">Подключение к бирже...</div>
     </div>
 
     <div class="card" id="game-card">
@@ -211,38 +211,47 @@
         let currentPairName = 'BTC / USDT';
         let ws = null;
         let currentPrice = 0;
+        let priceHistory = [];
 
         let stats = { total: 0, wins: 0, losses: 0 };
 
-        // Инициализация графика TradingView Lightweight Charts
-        const chartContainer = document.getElementById('chart-container');
-        const chart = LightweightCharts.createChart(chartContainer, {
-            layout: {
-                background: { type: 'solid', color: 'transparent' },
-                textColor: '#94a3b8',
-            },
-            grid: {
-                vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
-                horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
-            },
-            timeScale: {
-                timeVisible: true,
-                secondsVisible: true,
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-            },
-            rightPriceScale: {
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-            },
-            handleScroll: false,
-            handleScale: false,
-        });
+        // Настройка холста графика
+        const canvas = document.getElementById('price-canvas');
+        const ctx = canvas.getContext('2d');
 
-        const series = chart.addAreaSeries({
-            lineColor: '#2ecc71',
-            topColor: 'rgba(46, 204, 113, 0.4)',
-            bottomColor: 'rgba(46, 204, 113, 0.0)',
-            lineWidth: 2,
-        });
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth - 28;
+            canvas.height = 150;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function drawChart() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (priceHistory.length < 2) return;
+
+            let min = Math.min(...priceHistory);
+            let max = Math.max(...priceHistory);
+            let range = max - min || 1;
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#2ecc71';
+            ctx.lineWidth = 2;
+
+            for (let i = 0; i < priceHistory.length; i++) {
+                let x = (i / (priceHistory.length - 1)) * canvas.width;
+                let y = canvas.height - ((priceHistory[i] - min) / range) * (canvas.height - 20) - 10;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Заливка под графиком
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(0, canvas.height);
+            ctx.fillStyle = 'rgba(46, 204, 113, 0.1)';
+            ctx.fill();
+        }
 
         tg.CloudStorage.getItem('user_balance', (err, value) => {
             if (!err && value) balance = parseInt(value);
@@ -289,8 +298,7 @@
                 }
             });
 
-            // Очищаем старые данные графика при смене пары
-            series.setData([]);
+            priceHistory = [];
             connectWebSocket();
             tg.HapticFeedback.selectionChanged();
         }
@@ -299,26 +307,26 @@
             if (ws) ws.close();
             const priceEl = document.getElementById('btc-price');
             const statusEl = document.getElementById('status');
-            statusEl.innerText = "Подключение к терминалу...";
+            statusEl.innerText = "Подключение...";
 
             ws = new WebSocket(`wss://stream.binance.com:9443/ws/${currentSymbol}@trade`);
 
-            ws.onopen = () => { statusEl.innerText = "🟢 Терминал активен"; };
+            ws.onopen = () => { statusEl.innerText = "🟢 Рынок в реальном времени"; };
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 currentPrice = parseFloat(data.p);
-                const currentTime = Math.floor(Date.now() / 1000);
 
                 priceEl.innerText = `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-                // Добавляем новую точку на график в реальном времени
-                series.update({ time: currentTime, value: currentPrice });
+                priceHistory.push(currentPrice);
+                if (priceHistory.length > 50) priceHistory.shift(); // Оставляем последние 50 точек
+                drawChart();
             };
         }
 
         connectWebSocket();
 
-        function makeBet(direction) {
+7        function makeBet(direction) {
             if (isPlaying) return;
             if (balance < currentBet) {
                 alert("Недостаточно монет на балансе!");
