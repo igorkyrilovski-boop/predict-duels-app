@@ -3,76 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Predict Duels Mini App</title>
+    <title>Predict Duels Terminal MT5</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color, #1a1a2e);
-            color: var(--tg-theme-text-color, #ffffff);
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background-color: #0c0d10;
+            color: #d1d5db;
             margin: 0;
-            padding: 10px;
+            padding: 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            height: 97vh;
+            height: 98vh;
             box-sizing: border-box;
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 14px;
-            padding: 10px 14px;
+            background: #14161c;
+            border: 1px solid #232733;
+            border-radius: 10px;
+            padding: 8px 12px;
             width: 100%;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             box-sizing: border-box;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
 
         .balance-container {
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 15px;
+            font-weight: 700;
             color: #f39c12;
-            margin-bottom: 3px;
+            text-align: center;
         }
 
         .stats-grid {
             display: flex;
             justify-content: space-around;
-            margin-top: 6px;
-            font-size: 11px;
-            color: #cbd5e1;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 5px;
+            font-size: 10px;
+            color: #8e95a5;
+            border-top: 1px solid #232733;
             padding-top: 4px;
         }
 
         .stats-item span {
             font-weight: bold;
-            color: #fff;
+            color: #d1d5db;
         }
 
         .pair-container {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             margin-bottom: 6px;
         }
 
         .pair-btn {
             flex: 1;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 6px;
-            padding: 4px;
-            color: #aaa;
-            font-size: 12px;
-            font-weight: bold;
+            background: #1e222d;
+            border: 1px solid #2a2e3d;
+            border-radius: 5px;
+            padding: 5px;
+            color: #8e95a5;
+            font-size: 11px;
+            font-weight: 700;
             cursor: pointer;
         }
 
         .pair-btn.active {
-            background: #3b82f6;
-            color: white;
+            background: #2962ff;
+            color: #ffffff;
+            border-color: #2962ff;
         }
 
         .header-row {
@@ -82,31 +83,41 @@
             margin-bottom: 4px;
         }
 
-        .price-text {
-            font-size: 20px;
+        .symbol-title {
+            font-size: 13px;
             font-weight: bold;
-            color: #4eef90;
+            color: #00e676;
+            letter-spacing: 0.5px;
         }
 
-        /* Панель таймфреймов и индикаторов */
+        .price-text {
+            font-size: 18px;
+            font-weight: 800;
+            font-family: 'Courier New', monospace;
+            color: #00e676;
+        }
+
         .toolbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 4px;
-            font-size: 11px;
+            margin-bottom: 6px;
+            background: #181a20;
+            padding: 4px 6px;
+            border-radius: 4px;
+            border: 1px solid #232733;
         }
 
         .tf-group, .zoom-group {
             display: flex;
-            gap: 4px;
+            gap: 3px;
         }
 
         .tf-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 4px;
-            color: #aaa;
+            background: #202430;
+            border: 1px solid #2e3444;
+            border-radius: 3px;
+            color: #8e95a5;
             padding: 2px 6px;
             font-size: 10px;
             font-weight: bold;
@@ -114,34 +125,37 @@
         }
 
         .tf-btn.active {
-            background: #f39c12;
-            color: white;
+            background: #2962ff;
+            color: #fff;
+            border-color: #2962ff;
         }
 
         .action-btn {
-            background: rgba(255, 255, 255, 0.15);
-            border: none;
-            border-radius: 6px;
-            color: #fff;
-            padding: 3px 8px;
+            background: #202430;
+            border: 1px solid #2e3444;
+            border-radius: 4px;
+            color: #d1d5db;
+            padding: 2px 7px;
             font-size: 11px;
             cursor: pointer;
             font-weight: bold;
         }
 
         .action-btn:active {
-            background: rgba(255, 255, 255, 0.3);
+            background: #2a2e3d;
         }
 
+        /* Контейнер графика MT5 */
         #price-canvas {
             width: 100%;
-            height: 130px;
+            height: 160px;
             display: block;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
+            background: #000000;
+            border: 1px solid #232733;
+            border-radius: 4px;
         }
 
-        /* Модальное окно */
+        /* Полноэкранный терминал */
         .modal {
             display: none;
             position: fixed;
@@ -149,10 +163,10 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: #0f172a;
+            background: #0c0d10;
             z-index: 1000;
             flex-direction: column;
-            padding: 15px;
+            padding: 10px;
             box-sizing: border-box;
         }
 
@@ -164,15 +178,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .close-btn {
-            background: #e74c3c;
+            background: #ff5252;
             border: none;
             color: white;
-            padding: 8px 14px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
         }
@@ -180,8 +194,9 @@
         #modal-canvas {
             width: 100%;
             flex: 1;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
+            background: #000000;
+            border: 1px solid #232733;
+            border-radius: 6px;
             display: block;
         }
 
@@ -189,33 +204,34 @@
             display: flex;
             gap: 6px;
             width: 100%;
-            margin-top: 8px;
+            margin-top: 6px;
             box-sizing: border-box;
         }
 
         .btn {
             flex: 1;
-            padding: 12px;
+            padding: 11px;
             border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: bold;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 800;
             cursor: pointer;
+            letter-spacing: 0.5px;
             transition: transform 0.1s, opacity 0.2s;
         }
 
         .btn:active {
-            transform: scale(0.96);
+            transform: scale(0.97);
         }
 
         .bet-btn {
-            background-color: #e2e8f0;
-            color: #1e293b;
-            font-size: 12px;
+            background-color: #1e222d;
+            border: 1px solid #2a2e3d;
+            color: #8e95a5;
+            font-size: 11px;
             padding: 6px 2px;
             flex: 1;
-            border-radius: 6px;
-            border: none;
+            border-radius: 5px;
             font-weight: bold;
             cursor: pointer;
             text-align: center;
@@ -224,101 +240,105 @@
         .bet-btn.active {
             background-color: #f39c12;
             color: white;
+            border-color: #f39c12;
         }
 
         .btn-up {
-            background-color: #2ecc71;
-            color: white;
+            background-color: #00e676;
+            color: #000000;
         }
 
         .btn-down {
-            background-color: #e74c3c;
-            color: white;
+            background-color: #ff5252;
+            color: #ffffff;
         }
 
-        .status {
-            font-size: 12px;
-            color: #aaa;
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #5d6578;
             margin-top: 4px;
+            font-family: monospace;
         }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <div class="balance-container">💰 Баланс: <span id="balance">1000</span> монет</div>
+        <div class="balance-container">💰 БАЛАНС: <span id="balance">1000</span> USD</div>
         <div class="stats-grid">
-            <div class="stats-item">Матчей: <span id="stat-total">0</span></div>
+            <div class="stats-item">Сделок: <span id="stat-total">0</span></div>
             <div class="stats-item">Побед: <span id="stat-wins">0</span></div>
             <div class="stats-item">Поражений: <span id="stat-losses">0</span></div>
-            <div class="stats-item">Winrate: <span id="stat-winrate">0%</span></div>
+            <div class="stats-item">Винрейт: <span id="stat-winrate">0%</span></div>
         </div>
     </div>
 
     <div class="card">
         <div class="pair-container">
-            <button class="pair-btn active" onclick="changePair('BTCUSDT', 'BTC / USDT')">BTC</button>
-            <button class="pair-btn" onclick="changePair('ETHUSDT', 'ETH / USDT')">ETH</button>
-            <button class="pair-btn" onclick="changePair('SOLUSDT', 'SOL / USDT')">SOL</button>
-        </div>
-        <div class="header-row">
-            <span style="font-weight: bold; font-size: 13px;" id="pair-title">BTC / USDT</span>
-            <div class="price-text" id="btc-price">$--,---.--</div>
+            <button class="pair-btn active" onclick="changePair('BTCUSDT', 'BTC / USDT')">BTC/USDT</button>
+            <button class="pair-btn" onclick="changePair('ETHUSDT', 'ETH / USDT')">ETH/USDT</button>
+            <button class="pair-btn" onclick="changePair('SOLUSDT', 'SOL / USDT')">SOL/USDT</button>
         </div>
         
-        <!-- Панель управления таймфреймами и индикаторами -->
+        <div class="header-row">
+            <span class="symbol-title" id="pair-title">BTC / USDT (M1)</span>
+            <div class="price-text" id="btc-price">0.00</div>
+        </div>
+        
         <div class="toolbar">
             <div class="tf-group">
-                <span style="color:#888; align-self:center;">ТФ:</span>
+                <span style="color:#5d6578; align-self:center; font-size:10px;">ТФ:</span>
                 <button class="tf-btn active" onclick="setCandleTime(2000, this)">1s</button>
-                <button class="tf-btn" onclick="setCandleTime(5000, this)">3s</button>
-                <button class="tf-btn" onclick="setCandleTime(10000, this)">5s</button>
+                <button class="tf-btn" onclick="setCandleTime(4000, this)">3s</button>
+                <button class="tf-btn" onclick="setCandleTime(8000, this)">5s</button>
             </div>
             <div class="zoom-group">
-                <button class="action-btn" onclick="zoomIn()">➕</button>
-                <button class="action-btn" onclick="zoomOut()">➖</button>
-                <button class="action-btn" onclick="openModalChart()">📊</button>
+                <button class="action-btn" onclick="zoomIn()">🔍+</button>
+                <button class="action-btn" onclick="zoomOut()">🔍-</button>
+                <button class="action-btn" onclick="openModalChart()">🖥 FULL</button>
             </div>
         </div>
         
         <canvas id="price-canvas"></canvas>
-        <div style="display:flex; justify-content:space-between; font-size:10px; color:#f1c40f; margin-top:2px;">
-            <span>Индикатор: SMA (5)</span>
-            <span id="status">Подключение...</span>
+        <div class="status-bar">
+            <span>IND: SMA(5)</span>
+            <span id="status">CONNECTING...</span>
         </div>
     </div>
 
-    <!-- Полноэкранное модальное окно -->
+    <!-- Полноэкранное окно MT5 -->
     <div class="modal" id="chart-modal">
         <div class="modal-header">
             <div>
-                <h3 style="margin: 0; color: #fff;" id="modal-pair-title">BTC / USDT</h3>
-                <div style="color: #4eef90; font-size: 18px; font-weight: bold;" id="modal-btc-price">$--,---.--</div>
+                <h3 style="margin: 0; color: #00e676; font-family: monospace;" id="modal-pair-title">BTC / USDT</h3>
+                <div style="color: #ffffff; font-size: 18px; font-weight: bold; font-family: monospace;" id="modal-btc-price">0.00</div>
             </div>
             <div style="display: flex; gap: 6px; align-items: center;">
-                <button class="action-btn" onclick="zoomModalIn()">➕</button>
-                <button class="action-btn" onclick="zoomModalOut()">➖</button>
-                <button class="close-btn" onclick="closeModalChart()">✕</button>
+                <button class="action-btn" onclick="zoomModalIn()">🔍+</button>
+                <button class="action-btn" onclick="zoomModalOut()">🔍-</button>
+                <button class="close-btn" onclick="closeModalChart()">✕ CLOSE</button>
             </div>
         </div>
         <canvas id="modal-canvas"></canvas>
     </div>
 
     <div class="card" id="game-card">
-        <p id="game-instruction" style="margin: 0 0 4px 0; font-size: 13px;">Сумма ставки и прогноз на <b>60 секунд</b>:</p>
+        <p id="game-instruction" style="margin: 0 0 4px 0; font-size: 12px; text-align: center; color: #8e95a5;">Объем ордера и прогноз на <b>60 секунд</b>:</p>
         
         <div class="buttons-container" id="bet-selection">
-            <button class="bet-btn" onclick="setBet(50)">50</button>
-            <button class="bet-btn active" onclick="setBet(100)">100</button>
-            <button class="bet-btn" onclick="setBet(250)">250</button>
-            <button class="bet-btn" onclick="setBet(500)">500</button>
+            <button class="bet-btn" onclick="setBet(50)">50$</button>
+            <button class="bet-btn active" onclick="setBet(100)">100$</button>
+            <button class="bet-btn" onclick="setBet(250)">250$</button>
+            <button class="bet-btn" onclick="setBet(500)">500$</button>
         </div>
 
         <div class="buttons-container" id="buttons-block" style="margin-top: 6px;">
-            <button class="btn btn-up" onclick="makeBet('UP')">🚀 ВЫРАСТЕТ</button>
-            <button class="btn btn-down" onclick="makeBet('DOWN')">📉 УПАДЕТ</button>
+            <button class="btn btn-up" onclick="makeBet('UP')">BUY ⬆ (ВЫРАСТЕТ)</button>
+            <button class="btn btn-down" onclick="makeBet('DOWN')">SELL ⬇ (УПАДЕТ)</button>
         </div>
-        <div class="status" id="timer-status"></div>
+        <div style="font-size: 11px; color: #aaa; text-align: center; margin-top: 4px;" id="timer-status"></div>
     </div>
 
     <script>
@@ -331,11 +351,12 @@
         let currentSymbol = 'BTCUSDT';
         let currentPairName = 'BTC / USDT';
         let currentPrice = 0;
+        let prevPrice = 0;
         let candles = [];
-        let candleDuration = 2000; // Длительность свечи таймфрейма по умолчанию (2 сек)
+        let candleDuration = 2000;
         let candleTimer = null;
 
-        let visibleCandlesMain = 25;
+        let visibleCandlesMain = 24;
         let visibleCandlesModal = 45;
 
         let stats = { total: 0, wins: 0, losses: 0 };
@@ -347,12 +368,12 @@
         const modalCtx = modalCanvas.getContext('2d');
 
         function resizeCanvas() {
-            canvas.width = canvas.parentElement.clientWidth - 28;
-            canvas.height = 130;
+            canvas.width = canvas.parentElement.clientWidth - 26;
+            canvas.height = 160;
 
             if (document.getElementById('chart-modal').classList.contains('active')) {
-                modalCanvas.width = modalCanvas.parentElement.clientWidth - 30;
-                modalCanvas.height = modalCanvas.parentElement.clientHeight - 80;
+                modalCanvas.width = modalCanvas.parentElement.clientWidth - 20;
+                modalCanvas.height = modalCanvas.parentElement.clientHeight - 70;
             }
         }
         window.addEventListener('resize', resizeCanvas);
@@ -362,7 +383,7 @@
             candleDuration = ms;
             document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            candles = []; // Сбрасываем свечи под новый таймфрейм
+            candles = [];
             if (candleTimer) clearInterval(candleTimer);
             startCandleInterval();
             tg.HapticFeedback.selectionChanged();
@@ -379,15 +400,15 @@
 
         function zoomIn() {
             if (visibleCandlesMain > 10) {
-                visibleCandlesMain -= 5;
+                visibleCandlesMain -= 4;
                 drawAllCharts();
                 tg.HapticFeedback.impactOccurred('light');
             }
         }
 
         function zoomOut() {
-            if (visibleCandlesMain < 70) {
-                visibleCandlesMain += 5;
+            if (visibleCandlesMain < 60) {
+                visibleCandlesMain += 4;
                 drawAllCharts();
                 tg.HapticFeedback.impactOccurred('light');
             }
@@ -395,23 +416,30 @@
 
         function zoomModalIn() {
             if (visibleCandlesModal > 15) {
-                visibleCandlesModal -= 10;
+                visibleCandlesModal -= 8;
                 drawAllCharts();
                 tg.HapticFeedback.impactOccurred('light');
             }
         }
 
         function zoomModalOut() {
-            if (visibleCandlesModal < 120) {
-                visibleCandlesModal += 10;
+            if (visibleCandlesModal < 100) {
+                visibleCandlesModal += 8;
                 drawAllCharts();
                 tg.HapticFeedback.impactOccurred('light');
             }
         }
 
-        // Отрисовка свечей и индикатора SMA
+        // РЕНДЕРИНГ ГРАФИКА В СТИЛЕ METATRADER 5
         function drawCandlesOnContext(cContext, cCanvas, maxCandles) {
-            cContext.clearRect(0, 0, cCanvas.width, cCanvas.height);
+            const width = cCanvas.width;
+            const height = cCanvas.height;
+            const priceScaleWidth = 55; // Правая шкала цен как в MT5
+            const chartWidth = width - priceScaleWidth;
+
+            cContext.fillStyle = "#000000";
+            cContext.fillRect(0, 0, width, height);
+
             if (candles.length === 0) return;
 
             let displayCandles = candles.slice(-maxCandles);
@@ -423,29 +451,66 @@
             
             let range = max - min;
             if (range === 0) range = 1;
-            min -= range * 0.1;
-            max += range * 0.1;
+            min -= range * 0.08;
+            max += range * 0.08;
             range = max - min;
 
-            let slotWidth = cCanvas.width / maxCandles;
-            let candleWidth = Math.max(3, slotWidth - 4);
+            // 1. Отрисовка фоновой сетки MT5 (Grid)
+            cContext.strokeStyle = "#161920";
+            cContext.lineWidth = 1;
 
-            // 1. Рисуем свечи
+            // Горизонтальные линии сетки + метки цен
+            const gridRows = 5;
+            cContext.font = "9px monospace";
+            cContext.fillStyle = "#434a59";
+
+            for (let r = 0; r <= gridRows; r++) {
+                let y = (height - 20) * (r / gridRows) + 10;
+                cContext.beginPath();
+                cContext.moveTo(0, y);
+                cContext.lineTo(chartWidth, y);
+                cContext.stroke();
+
+                let priceAtY = max - (r / gridRows) * range;
+                cContext.fillText(priceAtY.toFixed(2), chartWidth + 5, y + 3);
+            }
+
+            // Вертикальные линии сетки
+            let slotWidth = chartWidth / maxCandles;
+            for (let i = 0; i < maxCandles; i += 5) {
+                let x = i * slotWidth;
+                cContext.beginPath();
+                cContext.moveTo(x, 0);
+                cContext.lineTo(x, height);
+                cContext.stroke();
+            }
+
+            // Шкала разделения справой стороны
+            cContext.strokeStyle = "#232733";
+            cContext.beginPath();
+            cContext.moveTo(chartWidth, 0);
+            cContext.lineTo(chartWidth, height);
+            cContext.stroke();
+
+            let candleWidth = Math.max(3, slotWidth - 3);
+
+            // 2. Отрисовка японских свечей MT5
             displayCandles.forEach((c, i) => {
                 let x = i * slotWidth + slotWidth / 2;
                 
-                let yHigh = cCanvas.height - ((c.high - min) / range) * (cCanvas.height - 20) - 10;
-                let yLow = cCanvas.height - ((c.low - min) / range) * (cCanvas.height - 20) - 10;
-                let yOpen = cCanvas.height - ((c.open - min) / range) * (cCanvas.height - 20) - 10;
-                let yClose = cCanvas.height - ((c.close - min) / range) * (cCanvas.height - 20) - 10;
+                let yHigh = height - ((c.high - min) / range) * (height - 20) - 10;
+                let yLow = height - ((c.low - min) / range) * (height - 20) - 10;
+                let yOpen = height - ((c.open - min) / range) * (height - 20) - 10;
+                let yClose = height - ((c.close - min) / range) * (height - 20) - 10;
 
                 let isGreen = c.close >= c.open;
-                let color = isGreen ? '#2ecc71' : '#e74c3c';
+                // Классический стилевой стиль MetaTrader: салатово-зелёные (бычьи) и ярко-красные (медвежьи)
+                let color = isGreen ? "#00e676" : "#ff5252";
 
-                // Фитиль
+                // Тень (фитиль)
                 cContext.beginPath();
                 cContext.strokeStyle = color;
-                cContext.lineWidth = 1.5;
+                cContext.lineWidth = 1.2;
                 cContext.moveTo(x, yHigh);
                 cContext.lineTo(x, yLow);
                 cContext.stroke();
@@ -458,7 +523,7 @@
                 cContext.fillRect(x - candleWidth / 2, bodyY, candleWidth, bodyHeight);
             });
 
-            // 2. Рассчитываем и рисуем индикатор SMA (период 5)
+            // 3. Индикатор SMA(5) золотистой линией
             let smaPeriod = 5;
             let smaPoints = [];
             for (let i = 0; i < displayCandles.length; i++) {
@@ -469,20 +534,41 @@
                     }
                     let avg = sum / smaPeriod;
                     let x = i * slotWidth + slotWidth / 2;
-                    let y = cCanvas.height - ((avg - min) / range) * (cCanvas.height - 20) - 10;
+                    let y = height - ((avg - min) / range) * (height - 20) - 10;
                     smaPoints.push({x, y});
                 }
             }
 
             if (smaPoints.length > 1) {
                 cContext.beginPath();
-                cContext.strokeStyle = '#f1c40f'; // Золотистый цвет линии SMA
-                cContext.lineWidth = 2;
+                cContext.strokeStyle = "#ffb300";
+                cContext.lineWidth = 1.8;
                 cContext.moveTo(smaPoints[0].x, smaPoints[0].y);
                 for (let p = 1; p < smaPoints.length; p++) {
                     cContext.lineTo(smaPoints[p].x, smaPoints[p].y);
                 }
                 cContext.stroke();
+            }
+
+            // 4. Пунктирная линия текущей цены (Bid/Ask Line в MT5)
+            if (currentPrice > 0) {
+                let currentY = height - ((currentPrice - min) / range) * (height - 20) - 10;
+                
+                cContext.setLineDash([4, 4]);
+                cContext.strokeStyle = "#00e676";
+                cContext.lineWidth = 1;
+                cContext.beginPath();
+                cContext.moveTo(0, currentY);
+                cContext.lineTo(chartWidth, currentY);
+                cContext.stroke();
+                cContext.setLineDash([]); // Сброс пунктира
+
+                // Выделенная плашка цены справа на шкале
+                cContext.fillStyle = "#00e676";
+                cContext.fillRect(chartWidth, currentY - 7, priceScaleWidth, 14);
+                cContext.fillStyle = "#000000";
+                cContext.font = "bold 9px monospace";
+                cContext.fillText(currentPrice.toFixed(1), chartWidth + 4, currentY + 3);
             }
         }
 
@@ -535,7 +621,7 @@
             currentBet = amount;
             document.querySelectorAll('.bet-btn').forEach(btn => {
                 btn.classList.remove('active');
-                if (parseInt(btn.innerText) === amount) btn.classList.add('active');
+                if (parseInt(btn.innerText) === amount + '$') btn.classList.add('active');
             });
             tg.HapticFeedback.selectionChanged();
         }
@@ -548,7 +634,7 @@
 
             document.querySelectorAll('.pair-btn').forEach(btn => {
                 btn.classList.remove('active');
-                if (btn.innerText === symbol.replace('USDT', '')) {
+                if (btn.innerText.includes(symbol.replace('USDT', ''))) {
                     btn.classList.add('active');
                 }
             });
@@ -567,11 +653,21 @@
                 .then(res => res.json())
                 .then(data => {
                     let price = parseFloat(data.price);
+                    prevPrice = currentPrice;
                     currentPrice = price;
+
                     let formatted = `$${currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     priceEl.innerText = formatted;
                     modalPriceEl.innerText = formatted;
-                    statusEl.innerText = "🟢 Активен";
+                    
+                    // Анимация цвета цены при росте/падении
+                    if (currentPrice >= prevPrice) {
+                        priceEl.style.color = '#00e676';
+                    } else {
+                        priceEl.style.color = '#ff5252';
+                    }
+
+                    statusEl.innerText = "ONLINE MT5";
 
                     if (candles.length === 0 || candles[candles.length - 1].closed) {
                         candles.push({ open: price, high: price, low: price, close: price, closed: false });
@@ -586,7 +682,7 @@
                     drawAllCharts();
                 })
                 .catch(err => {
-                    statusEl.innerText = "⚠️ Ошибка связи";
+                    statusEl.innerText = "OFFLINE";
                 });
         }
 
@@ -596,7 +692,7 @@
         function makeBet(direction) {
             if (isPlaying) return;
             if (balance < currentBet) {
-                alert("Недостаточно монет на балансе!");
+                alert("Недостаточно средств на балансе!");
                 return;
             }
 
@@ -615,14 +711,14 @@
             const timerStatus = document.getElementById('timer-status');
             const instruction = document.getElementById('game-instruction');
             
-            instruction.innerHTML = `Пара: <b>${currentPairName}</b> | Ставка: <b>${currentBet}</b><br>Прогноз: <b>${direction === 'UP' ? '🚀 ВЫРАСТЕТ' : '📉 УПАДЕТ'}</b> ($${startPrice.toFixed(2)})`;
+            instruction.innerHTML = `ОРДЕР: <b>${currentPairName}</b> | СТАВКА: <b>${currentBet}$</b><br>ПРОГНОЗ: <b>${direction === 'UP' ? 'ВЫРАСТЕТ 🚀' : 'УПАДЕТ 📉'}</b> ($${startPrice.toFixed(2)})`;
 
             let timeLeft = 60;
-            timerStatus.innerText = `⏳ До окончания дуэли: ${timeLeft} сек.`;
+            timerStatus.innerText = `⏳ Экспирация сделки: ${timeLeft} сек.`;
 
             const interval = setInterval(() => {
                 timeLeft--;
-                timerStatus.innerText = `⏳ До окончания дуэли: ${timeLeft} сек.`;
+                timerStatus.innerText = `⏳ Экспирация сделки: ${timeLeft} сек.`;
 
                 if (timeLeft <= 0) {
                     clearInterval(interval);
@@ -646,13 +742,13 @@
                 stats.wins++;
                 const prize = currentBet * 2;
                 balance += prize;
-                instruction.innerHTML = `🎉 ПОБЕДА! (${currentPairName}) Цена: $${endPrice.toFixed(2)}`;
-                timerStatus.innerHTML = `💰 Вы выиграли <b>+${prize} монет</b>!`;
+                instruction.innerHTML = `🎉 ПОБЕДА! (${currentPairName}) Вход: $${startPrice.toFixed(2)} ➡️ Итог: $${endPrice.toFixed(2)}`;
+                timerStatus.innerHTML = `💰 Профит: <b>+${prize} USD</b>!`;
                 tg.HapticFeedback.notificationOccurred('success');
             } else {
                 stats.losses++;
-                instruction.innerHTML = `❌ ПРОИГРЫШ. (${currentPairName}) Цена: $${endPrice.toFixed(2)}`;
-                timerStatus.innerHTML = `💸 Вы потеряли ${currentBet} монет.`;
+                instruction.innerHTML = `❌ УБЫТОК. (${currentPairName}) Вход: $${startPrice.toFixed(2)} ➡️ Итог: $${endPrice.toFixed(2)}`;
+                timerStatus.innerHTML = `💸 Убыток по ордеру: -${currentBet} USD.`;
                 tg.HapticFeedback.notificationOccurred('error');
             }
 
