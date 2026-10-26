@@ -306,8 +306,8 @@
         let candles = [];
         let priceInterval = null;
 
-        let visibleCandlesMain = 20;
-        let visibleCandlesModal = 40;
+        let visibleCandlesMain = 25;
+        let visibleCandlesModal = 45;
 
         let stats = { total: 0, wins: 0, losses: 0 };
 
@@ -330,32 +330,32 @@
         resizeCanvas();
 
         function zoomIn() {
-            if (visibleCandlesMain > 8) {
-                visibleCandlesMain -= 4;
+            if (visibleCandlesMain > 10) {
+                visibleCandlesMain -= 5;
                 drawAllCharts();
                 tg.HapticFeedback.impactOccurred('light');
             }
         }
 
         function zoomOut() {
-            if (visibleCandlesMain < 60) {
-                visibleCandlesMain += 4;
+            if (visibleCandlesMain < 70) {
+                visibleCandlesMain += 5;
                 drawAllCharts();
                 tg.HapticFeedback.impactOccurred('light');
             }
         }
 
         function zoomModalIn() {
-            if (visibleCandlesModal > 12) {
-                visibleCandlesModal -= 8;
+            if (visibleCandlesModal > 15) {
+                visibleCandlesModal -= 10;
                 drawAllCharts();
                 tg.HapticFeedback.impactOccurred('light');
             }
         }
 
         function zoomModalOut() {
-            if (visibleCandlesModal < 100) {
-                visibleCandlesModal += 8;
+            if (visibleCandlesModal < 120) {
+                visibleCandlesModal += 10;
                 drawAllCharts();
                 tg.HapticFeedback.impactOccurred('light');
             }
@@ -371,21 +371,29 @@
             displayCandles.forEach(c => prices.push(c.high, c.low));
             let min = Math.min(...prices);
             let max = Math.max(...prices);
-            let range = max - min || 1;
+            
+            // Добавляем вертикальный отступ 10%, чтобы свечи не упирались в края
+            let range = max - min;
+            if (range === 0) range = 1;
+            min -= range * 0.1;
+            max += range * 0.1;
+            range = max - min;
 
-            let candleWidth = Math.max(3, cCanvas.width / displayCandles.length - 4);
+            let slotWidth = cCanvas.width / maxCandles;
+            let candleWidth = Math.max(3, slotWidth - 4);
 
             displayCandles.forEach((c, i) => {
-                let x = i * (cCanvas.width / displayCandles.length) + candleWidth / 2;
+                let x = i * slotWidth + slotWidth / 2;
                 
-                let yHigh = cCanvas.height - ((c.high - min) / range) * (cCanvas.height - 30) - 15;
-                let yLow = cCanvas.height - ((c.low - min) / range) * (cCanvas.height - 30) - 15;
-                let yOpen = cCanvas.height - ((c.open - min) / range) * (cCanvas.height - 30) - 15;
-                let yClose = cCanvas.height - ((c.close - min) / range) * (cCanvas.height - 30) - 15;
+                let yHigh = cCanvas.height - ((c.high - min) / range) * (cCanvas.height - 20) - 10;
+                let yLow = cCanvas.height - ((c.low - min) / range) * (cCanvas.height - 20) - 10;
+                let yOpen = cCanvas.height - ((c.open - min) / range) * (cCanvas.height - 20) - 10;
+                let yClose = cCanvas.height - ((c.close - min) / range) * (cCanvas.height - 20) - 10;
 
                 let isGreen = c.close >= c.open;
                 let color = isGreen ? '#2ecc71' : '#e74c3c';
 
+                // Фитиль
                 cContext.beginPath();
                 cContext.strokeStyle = color;
                 cContext.lineWidth = 1.5;
@@ -393,6 +401,7 @@
                 cContext.lineTo(x, yLow);
                 cContext.stroke();
 
+                // Тело свечи
                 let bodyY = Math.min(yOpen, yClose);
                 let bodyHeight = Math.max(Math.abs(yOpen - yClose), 2);
 
@@ -412,7 +421,6 @@
             document.getElementById('modal-pair-title').innerText = currentPairName;
             document.getElementById('chart-modal').classList.add('active');
             
-            // Даем браузеру время показать модальное окно, затем пересчитываем размер canvas
             setTimeout(() => {
                 resizeCanvas();
                 drawAllCharts();
@@ -493,7 +501,7 @@
 
                     if (candles.length === 0 || candles[candles.length - 1].closed) {
                         candles.push({ open: price, high: price, low: price, close: price, closed: false });
-                        if (candles.length > 80) candles.shift();
+                        if (candles.length > 100) candles.shift();
                     } else {
                         let currentCandle = candles[candles.length - 1];
                         currentCandle.close = price;
