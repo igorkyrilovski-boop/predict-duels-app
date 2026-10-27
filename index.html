@@ -59,11 +59,6 @@
             padding-top: 4px;
         }
 
-        .stats-item span {
-            font-weight: bold;
-            color: #d1d5db;
-        }
-
         .pair-container {
             display: flex;
             gap: 4px;
@@ -99,7 +94,6 @@
             font-size: 13px;
             font-weight: bold;
             color: #00e676;
-            letter-spacing: 0.5px;
         }
 
         .price-text {
@@ -175,7 +169,6 @@
             padding: 10px;
             box-sizing: border-box;
         }
-
         .modal.active { display: flex; }
 
         .modal-header {
@@ -329,27 +322,16 @@
             <h3 style="margin:0; color:#f39c12;">🛒 Магазин тем и стилей</h3>
             <button class="close-btn" onclick="closeShop()">✕</button>
         </div>
-        <p style="font-size:12px; color:#8e95a5;">Покупайте уникальные темы оформления графиков за монеты!</p>
-        
         <div class="shop-item">
-            <div>
-                <strong> Cyberpunk-тема (Неон)</strong>
-                <div style="font-size:11px; color:#8e95a5;">Темно-фиолетовый фон</div>
-            </div>
+            <div><strong>Cyberpunk-тема</strong></div>
             <button class="action-btn" onclick="buyTheme('cyberpunk')" style="background:#2962ff;">Купить (500)</button>
         </div>
         <div class="shop-item">
-            <div>
-                <strong> Matrix-тема</strong>
-                <div style="font-size:11px; color:#8e95a5;">Зеленый хакерский фон</div>
-            </div>
+            <div><strong>Matrix-тема</strong></div>
             <button class="action-btn" onclick="buyTheme('matrix')" style="background:#2962ff;">Купить (500)</button>
         </div>
         <div class="shop-item">
-            <div>
-                <strong> Стандартная тема (MT5)</strong>
-                <div style="font-size:11px; color:#8e95a5;">Черный терминал</div>
-            </div>
+            <div><strong>Стандартная тема</strong></div>
             <button class="action-btn" onclick="buyTheme('default')" style="background:#2ecc71;">Выбрать</button>
         </div>
     </div>
@@ -361,11 +343,7 @@
                 <h3 style="margin: 0; color: #00e676; font-family: monospace;" id="modal-pair-title">BTC / USDT</h3>
                 <div style="color: #ffffff; font-size: 18px; font-weight: bold; font-family: monospace;" id="modal-btc-price">0.00</div>
             </div>
-            <div style="display: flex; gap: 6px; align-items: center;">
-                <button class="action-btn" onclick="zoomModalIn()">🔍+</button>
-                <button class="action-btn" onclick="zoomModalOut()">🔍-</button>
-                <button class="close-btn" onclick="closeModalChart()">✕ CLOSE</button>
-            </div>
+            <button class="close-btn" onclick="closeModalChart()">✕ CLOSE</button>
         </div>
         <canvas id="modal-canvas"></canvas>
     </div>
@@ -424,18 +402,10 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Безопасная загрузка баланса и XP из Telegram CloudStorage
-        tg.CloudStorage.getItem('user_balance', (err, val) => {
-            if (!err && val) balance = Number(val);
-            updateUI();
-        });
-        tg.CloudStorage.getItem('user_xp', (err, val) => {
-            if (!err && val) xp = Number(val);
-            updateUI();
-        });
-        tg.CloudStorage.getItem('user_theme', (err, val) => {
-            if (!err && val) applyTheme(val);
-        });
+        // Загрузка данных
+        tg.CloudStorage.getItem('user_balance', (err, val) => { if (!err && val) balance = Number(val); updateUI(); });
+        tg.CloudStorage.getItem('user_xp', (err, val) => { if (!err && val) xp = Number(val); updateUI(); });
+        tg.CloudStorage.getItem('user_theme', (err, val) => { if (!err && val) applyTheme(val); });
         tg.CloudStorage.getItem('user_stats', (err, val) => {
             if (!err && val) { try { stats = JSON.parse(val); } catch(e){} }
             updateUI();
@@ -463,14 +433,8 @@
         function closeShop() { document.getElementById('shop-modal').classList.remove('active'); }
 
         function buyTheme(themeName) {
-            if (themeName !== 'default' && balance < 500) {
-                alert("Недостаточно монет! Нужно 500 монет.");
-                return;
-            }
-            if (themeName !== 'default') {
-                balance -= 500;
-                tg.CloudStorage.setItem('user_balance', balance.toString());
-            }
+            if (themeName !== 'default' && balance < 500) { alert("Нужно 500 монет!"); return; }
+            if (themeName !== 'default') { balance -= 500; tg.CloudStorage.setItem('user_balance', balance.toString()); }
             applyTheme(themeName);
             tg.CloudStorage.setItem('user_theme', themeName);
             closeShop();
@@ -492,7 +456,6 @@
             candles = [];
             if (candleTimer) clearInterval(candleTimer);
             candleTimer = setInterval(() => { if (candles.length > 0) candles[candles.length - 1].closed = true; }, candleDuration);
-            tg.HapticFeedback.selectionChanged();
         }
 
         function zoomIn() { if (visibleCandlesMain > 10) { visibleCandlesMain -= 4; drawAllCharts(); } }
@@ -567,7 +530,6 @@
             currentBet = Number(amount);
             document.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            tg.HapticFeedback.selectionChanged();
         }
 
         function changePair(symbol, pairName) {
@@ -597,18 +559,16 @@
         }
         fetchPrice(); setInterval(fetchPrice, 1200);
 
+        // ЖЕСТКО ФИКСИРУЕМ СТАРТ СДЕЛКИ И ТАЙМЕРА
         function makeBet(direction) {
             if (isPlaying) return;
             
-            // Проверка баланса
             if (Number(balance) < Number(currentBet)) {
                 alert("Недостаточно средств на балансе!");
                 return;
             }
 
-            tg.HapticFeedback.impactOccurred('medium');
-            
-            // Списываем средства
+            // Списываем ставку
             balance = Number(balance) - Number(currentBet);
             updateUI();
             tg.CloudStorage.setItem('user_balance', balance.toString());
@@ -616,27 +576,21 @@
             isPlaying = true;
             const startPrice = currentPrice;
             
-            // Прячем кнопки выбора направления (BUY/SELL) и оставляем статус таймера
-            const buttonsBlock = document.getElementById('buttons-block');
-            const betSelection = document.getElementById('bet-selection');
-            if (betSelection) betSelection.style.display = 'none';
-            if (buttonsBlock) buttonsBlock.style.display = 'none'; // Скрываем кнопки ордеров, чтобы не было повторных кликов
+            // Прячем блоки выбора ставок и ордеров
+            document.getElementById('bet-selection').style.display = 'none';
+            document.getElementById('buttons-block').style.display = 'none';
 
             const timerStatus = document.getElementById('timer-status');
             const instruction = document.getElementById('game-instruction');
             
-            if (instruction) {
-                instruction.innerHTML = `ОРДЕР: <b>${currentPairName}</b> | СТАВКА: <b>${currentBet}$</b><br>ПРОГНОЗ: <b>${direction === 'UP' ? 'ВЫРАСТЕТ 🚀' : 'УПАДЕТ 📉'}</b> ($${startPrice.toFixed(2)})`;
-            }
+            instruction.innerHTML = `ОРДЕР: <b>${currentPairName}</b> | СТАВКА: <b>${currentBet}$</b><br>ПРОГНОЗ: <b>${direction === 'UP' ? 'ВЫРАСТЕТ 🚀' : 'УПАДЕТ 📉'}</b> ($${startPrice.toFixed(2)})`;
 
             let timeLeft = 60;
-            if (timerStatus) timerStatus.innerText = `⏳ Экспирация сделки: ${timeLeft} сек.`;
+            timerStatus.innerText = `⏳ Экспирация сделки: ${timeLeft} сек.`;
 
             const interval = setInterval(() => {
                 timeLeft--;
-                if (timerStatus) {
-                    timerStatus.innerText = `⏳ Экспирация сделки: ${timeLeft} сек.`;
-                }
+                timerStatus.innerText = `⏳ Экспирация сделки: ${timeLeft} сек.`;
 
                 if (timeLeft <= 0) {
                     clearInterval(interval);
@@ -656,10 +610,8 @@
                 let prize = currentBet * 2;
                 balance += prize;
                 xp += 100;
-                tg.HapticFeedback.notificationOccurred('success');
             } else {
                 stats.losses++;
-                tg.HapticFeedback.notificationOccurred('error');
             }
 
             updateUI();
@@ -667,9 +619,10 @@
             tg.CloudStorage.setItem('user_xp', xp.toString());
             tg.CloudStorage.setItem('user_stats', JSON.stringify(stats));
 
+            // Перенаправление обратно в бот
             setTimeout(() => {
                 window.location.href = `https://t.me/predict_duels_game_bot?start=balance_${balance}_xp_${xp}`;
-            }, 2500);
+            }, 1500);
         }
     </script>
 </body>
