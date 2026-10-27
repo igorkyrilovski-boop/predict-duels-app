@@ -600,13 +600,15 @@
         function makeBet(direction) {
             if (isPlaying) return;
             
-            // Численная проверка баланса
+            // Проверка баланса
             if (Number(balance) < Number(currentBet)) {
                 alert("Недостаточно средств на балансе!");
                 return;
             }
 
             tg.HapticFeedback.impactOccurred('medium');
+            
+            // Списываем средства
             balance = Number(balance) - Number(currentBet);
             updateUI();
             tg.CloudStorage.setItem('user_balance', balance.toString());
@@ -614,12 +616,11 @@
             isPlaying = true;
             const startPrice = currentPrice;
             
-            // Безопасное скрытие кнопок выбора ставок на время дуэли
+            // Прячем кнопки выбора направления (BUY/SELL) и оставляем статус таймера
+            const buttonsBlock = document.getElementById('buttons-block');
             const betSelection = document.getElementById('bet-selection');
             if (betSelection) betSelection.style.display = 'none';
-            
-            const pairContainer = document.querySelector('.pair-container');
-            if (pairContainer) pairContainer.style.display = 'none';
+            if (buttonsBlock) buttonsBlock.style.display = 'none'; // Скрываем кнопки ордеров, чтобы не было повторных кликов
 
             const timerStatus = document.getElementById('timer-status');
             const instruction = document.getElementById('game-instruction');
