@@ -333,7 +333,7 @@
         
         <div class="shop-item">
             <div>
-                <strong> cyberpunk-тема (Неон)</strong>
+                <strong> Cyberpunk-тема (Неон)</strong>
                 <div style="font-size:11px; color:#8e95a5;">Темно-фиолетовый фон</div>
             </div>
             <button class="action-btn" onclick="buyTheme('cyberpunk')" style="background:#2962ff;">Купить (500)</button>
@@ -374,17 +374,17 @@
         <p id="game-instruction" style="margin: 0 0 4px 0; font-size: 12px; text-align: center; color: #8e95a5;">Прогноз на <b>60 секунд</b>:</p>
         
         <div class="buttons-container" id="bet-selection">
-            <button class="bet-btn" data-amount="50" onclick="setBet(50, this)">50$</button>
-            <button class="bet-btn active" data-amount="100" onclick="setBet(100, this)">100$</button>
-            <button class="bet-btn" data-amount="250" onclick="setBet(250, this)">250$</button>
-            <button class="bet-btn" data-amount="500" onclick="setBet(500, this)">500$</button>
+            <button class="bet-btn" onclick="setBet(50, this)">50$</button>
+            <button class="bet-btn active" onclick="setBet(100, this)">100$</button>
+            <button class="bet-btn" onclick="setBet(250, this)">250$</button>
+            <button class="bet-btn" onclick="setBet(500, this)">500$</button>
         </div>
 
         <div class="buttons-container" id="buttons-block" style="margin-top: 6px;">
             <button class="btn btn-up" onclick="makeBet('UP')">BUY ⬆ (ВЫРАСТЕТ)</button>
             <button class="btn btn-down" onclick="makeBet('DOWN')">SELL ⬇ (УПАДЕТ)</button>
         </div>
-        <div style="font-size: 11px; color: #aaa; text-align: center; margin-top: 4px;" id="timer-status"></div>
+        <div style="font-size: 11px; color: #f39c12; font-weight: bold; text-align: center; margin-top: 6px;" id="timer-status"></div>
     </div>
 
     <script>
@@ -424,10 +424,18 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Загрузка данных
-        tg.CloudStorage.getItem('user_balance', (err, val) => { if (!err && val) balance = parseInt(val); updateUI(); });
-        tg.CloudStorage.getItem('user_xp', (err, val) => { if (!err && val) xp = parseInt(val); updateUI(); });
-        tg.CloudStorage.getItem('user_theme', (err, val) => { if (!err && val) applyTheme(val); });
+        // Безопасная загрузка баланса и XP из Telegram CloudStorage
+        tg.CloudStorage.getItem('user_balance', (err, val) => {
+            if (!err && val) balance = Number(val);
+            updateUI();
+        });
+        tg.CloudStorage.getItem('user_xp', (err, val) => {
+            if (!err && val) xp = Number(val);
+            updateUI();
+        });
+        tg.CloudStorage.getItem('user_theme', (err, val) => {
+            if (!err && val) applyTheme(val);
+        });
         tg.CloudStorage.getItem('user_stats', (err, val) => {
             if (!err && val) { try { stats = JSON.parse(val); } catch(e){} }
             updateUI();
@@ -554,10 +562,9 @@
         }
         function closeModalChart() { document.getElementById('chart-modal').classList.remove('active'); }
 
-        // Исправленный выбор ставки по атрибуту data-amount
         function setBet(amount, btn) {
             if (isPlaying) return;
-            currentBet = amount;
+            currentBet = Number(amount);
             document.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             tg.HapticFeedback.selectionChanged();
@@ -592,26 +599,44 @@
 
         function makeBet(direction) {
             if (isPlaying) return;
-            if (balance < currentBet) {
+            
+            // Численная проверка баланса
+            if (Number(balance) < Number(currentBet)) {
                 alert("Недостаточно средств на балансе!");
                 return;
             }
 
             tg.HapticFeedback.impactOccurred('medium');
-            balance -= currentBet;
+            balance = Number(balance) - Number(currentBet);
             updateUI();
             tg.CloudStorage.setItem('user_balance', balance.toString());
 
             isPlaying = true;
             const startPrice = currentPrice;
-            document.getElementById('bet-selection').style.display = 'none';
-            document.querySelector('.pair-container').style.display = 'none';
+            
+            // Безопасное скрытие кнопок выбора ставок на время дуэли
+            const betSelection = document.getElementById('bet-selection');
+            if (betSelection) betSelection.style.display = 'none';
+            
+            const pairContainer = document.querySelector('.pair-container');
+            if (pairContainer) pairContainer.style.display = 'none';
+
+            const timerStatus = document.getElementById('timer-status');
+            const instruction = document.getElementById('game-instruction');
+            
+            if (instruction) {
+                instruction.innerHTML = `ОРДЕР: <b>${currentPairName}</b> | СТАВКА: <b>${currentBet}$</b><br>ПРОГНОЗ: <b>${direction === 'UP' ? 'ВЫРАСТЕТ 🚀' : 'УПАДЕТ 📉'}</b> ($${startPrice.toFixed(2)})`;
+            }
 
             let timeLeft = 60;
-            const timerStatus = document.getElementById('timer-status');
+            if (timerStatus) timerStatus.innerText = `⏳ Экспирация сделки: ${timeLeft} сек.`;
+
             const interval = setInterval(() => {
                 timeLeft--;
-                timerStatus.innerText = `⏳ Экспирация: ${timeLeft} сек.`;
+                if (timerStatus) {
+                    timerStatus.innerText = `⏳ Экспирация сделки: ${timeLeft} сек.`;
+                }
+
                 if (timeLeft <= 0) {
                     clearInterval(interval);
                     finishGame(startPrice, direction);
@@ -620,7 +645,8 @@
         }
 
         function finishGame(startPrice, direction) {
-            const won = (direction === 'UP' && currentPrice > startPrice) || (direction === 'DOWN' && currentPrice < startPrice);
+            const endPrice = currentPrice;
+            const won = (direction === 'UP' && endPrice > startPrice) || (direction === 'DOWN' && endPrice < startPrice);
             stats.total++;
             xp += 50;
 
@@ -640,7 +666,6 @@
             tg.CloudStorage.setItem('user_xp', xp.toString());
             tg.CloudStorage.setItem('user_stats', JSON.stringify(stats));
 
-            // Перенаправление в твой бот с передачей баланса и XP
             setTimeout(() => {
                 window.location.href = `https://t.me/predict_duels_game_bot?start=balance_${balance}_xp_${xp}`;
             }, 2500);
