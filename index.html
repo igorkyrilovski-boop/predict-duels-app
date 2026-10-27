@@ -162,7 +162,6 @@
             border-radius: 4px;
         }
 
-        /* Модальные окна */
         .modal {
             display: none;
             position: fixed;
@@ -177,9 +176,7 @@
             box-sizing: border-box;
         }
 
-        .modal.active {
-            display: flex;
-        }
+        .modal.active { display: flex; }
 
         .modal-header {
             display: flex;
@@ -207,7 +204,6 @@
             display: block;
         }
 
-        /* Магазин кастомизации */
         .shop-modal {
             display: none;
             position: fixed;
@@ -242,24 +238,12 @@
             box-sizing: border-box;
         }
 
-        .btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 800;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-        .btn:active { transform: scale(0.97); }
-
         .bet-btn {
             background-color: #1e222d;
             border: 1px solid #2a2e3d;
             color: #8e95a5;
             font-size: 11px;
-            padding: 5px 2px;
+            padding: 6px 2px;
             flex: 1;
             border-radius: 5px;
             font-weight: bold;
@@ -268,6 +252,15 @@
         }
         .bet-btn.active { background-color: #f39c12; color: white; border-color: #f39c12; }
 
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+        }
         .btn-up { background-color: #00e676; color: #000000; }
         .btn-down { background-color: #ff5252; color: #ffffff; }
 
@@ -330,7 +323,7 @@
         </div>
     </div>
 
-    <!-- Модалка Магазина -->
+    <!-- Магазин -->
     <div class="shop-modal" id="shop-modal">
         <div class="modal-header">
             <h3 style="margin:0; color:#f39c12;">🛒 Магазин тем и стилей</h3>
@@ -341,23 +334,23 @@
         <div class="shop-item">
             <div>
                 <strong> cyberpunk-тема (Неон)</strong>
-                <div style="font-size:11px; color:#8e95a5;">Темно-фиолетовый фон графиков</div>
+                <div style="font-size:11px; color:#8e95a5;">Темно-фиолетовый фон</div>
             </div>
-            <button class="action-btn" onclick="buyTheme('cyberpunk', '#130f26', '#00f2fe')" style="background:#2962ff;">Купить (500)</button>
+            <button class="action-btn" onclick="buyTheme('cyberpunk')" style="background:#2962ff;">Купить (500)</button>
         </div>
         <div class="shop-item">
             <div>
-                <strong> ️ Matrix-тема</strong>
-                <div style="font-size:11px; color:#8e95a5;">Классический зеленый хакерский фон</div>
+                <strong> Matrix-тема</strong>
+                <div style="font-size:11px; color:#8e95a5;">Зеленый хакерский фон</div>
             </div>
-            <button class="action-btn" onclick="buyTheme('matrix', '#021005', '#00ff66')" style="background:#2962ff;">Купить (500)</button>
+            <button class="action-btn" onclick="buyTheme('matrix')" style="background:#2962ff;">Купить (500)</button>
         </div>
         <div class="shop-item">
             <div>
                 <strong> Стандартная тема (MT5)</strong>
-                <div style="font-size:11px; color:#8e95a5;">Классический черный терминал</div>
+                <div style="font-size:11px; color:#8e95a5;">Черный терминал</div>
             </div>
-            <button class="action-btn" onclick="buyTheme('default', '#0c0d10', '#000000')" style="background:#2ecc71;">Выбрать</button>
+            <button class="action-btn" onclick="buyTheme('default')" style="background:#2ecc71;">Выбрать</button>
         </div>
     </div>
 
@@ -381,10 +374,10 @@
         <p id="game-instruction" style="margin: 0 0 4px 0; font-size: 12px; text-align: center; color: #8e95a5;">Прогноз на <b>60 секунд</b>:</p>
         
         <div class="buttons-container" id="bet-selection">
-            <button class="bet-btn" onclick="setBet(50)">50$</button>
-            <button class="bet-btn active" onclick="setBet(100)">100$</button>
-            <button class="bet-btn" onclick="setBet(250)">250$</button>
-            <button class="bet-btn" onclick="setBet(500)">500$</button>
+            <button class="bet-btn" data-amount="50" onclick="setBet(50, this)">50$</button>
+            <button class="bet-btn active" data-amount="100" onclick="setBet(100, this)">100$</button>
+            <button class="bet-btn" data-amount="250" onclick="setBet(250, this)">250$</button>
+            <button class="bet-btn" data-amount="500" onclick="setBet(500, this)">500$</button>
         </div>
 
         <div class="buttons-container" id="buttons-block" style="margin-top: 6px;">
@@ -402,7 +395,6 @@
         let xp = 0;
         let level = 1;
         let rank = "Крипто-новичок";
-        let currentTheme = 'default';
         let currentBet = 100;
         let isPlaying = false;
         let currentSymbol = 'BTCUSDT';
@@ -432,7 +424,7 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Загрузка данных из CloudStorage
+        // Загрузка данных
         tg.CloudStorage.getItem('user_balance', (err, val) => { if (!err && val) balance = parseInt(val); updateUI(); });
         tg.CloudStorage.getItem('user_xp', (err, val) => { if (!err && val) xp = parseInt(val); updateUI(); });
         tg.CloudStorage.getItem('user_theme', (err, val) => { if (!err && val) applyTheme(val); });
@@ -442,10 +434,7 @@
         });
 
         function updateUI() {
-            // Расчет уровня по XP (каждые 300 XP = 1 уровень)
             level = Math.floor(xp / 300) + 1;
-
-            // Ранги / звания в зависимости от уровня
             if (level >= 10) rank = "Волк с Wall Street 🐺";
             else if (level >= 5) rank = "Опытный трейдер 📈";
             else if (level >= 3) rank = "Крипто-энтузиаст ⚡";
@@ -465,7 +454,7 @@
         function openShop() { document.getElementById('shop-modal').classList.add('active'); }
         function closeShop() { document.getElementById('shop-modal').classList.remove('active'); }
 
-        function buyTheme(themeName, bgColor, chartBg) {
+        function buyTheme(themeName) {
             if (themeName !== 'default' && balance < 500) {
                 alert("Недостаточно монет! Нужно 500 монет.");
                 return;
@@ -474,14 +463,13 @@
                 balance -= 500;
                 tg.CloudStorage.setItem('user_balance', balance.toString());
             }
-            applyTheme(themeName, bgColor, chartBg);
+            applyTheme(themeName);
             tg.CloudStorage.setItem('user_theme', themeName);
             closeShop();
             updateUI();
         }
 
         function applyTheme(name) {
-            currentTheme = name;
             let bg = '#0c0d10', cBg = '#000000';
             if (name === 'cyberpunk') { bg = '#1a0b2e'; cBg = '#130f26'; }
             if (name === 'matrix') { bg = '#011c08'; cBg = '#021005'; }
@@ -517,7 +505,6 @@
             let range = max - min || 1;
             min -= range * 0.08; max += range * 0.08; range = max - min;
 
-            // Сетка
             cContext.strokeStyle = "#161920"; cContext.lineWidth = 1;
             for (let r = 0; r <= 5; r++) {
                 let y = (height - 20) * (r / 5) + 10;
@@ -541,6 +528,16 @@
                 cContext.fillStyle = color;
                 cContext.fillRect(x - candleWidth / 2, Math.min(yOpen, yClose), candleWidth, Math.max(Math.abs(yOpen - yClose), 2));
             });
+
+            if (currentPrice > 0) {
+                let currentY = height - ((currentPrice - min) / range) * (height - 20) - 10;
+                cContext.setLineDash([4, 4]); cContext.strokeStyle = "#00e676"; cContext.lineWidth = 1;
+                cContext.beginPath(); cContext.moveTo(0, currentY); cContext.lineTo(chartWidth, currentY); cContext.stroke();
+                cContext.setLineDash([]);
+                cContext.fillStyle = "#00e676"; cContext.fillRect(chartWidth, currentY - 7, priceScaleWidth, 14);
+                cContext.fillStyle = "#000000"; cContext.font = "bold 9px monospace";
+                cContext.fillText(currentPrice.toFixed(1), chartWidth + 4, currentY + 3);
+            }
         }
 
         function drawAllCharts() {
@@ -557,12 +554,13 @@
         }
         function closeModalChart() { document.getElementById('chart-modal').classList.remove('active'); }
 
-        function setBet(amount) {
+        // Исправленный выбор ставки по атрибуту data-amount
+        function setBet(amount, btn) {
+            if (isPlaying) return;
             currentBet = amount;
-            document.querySelectorAll('.bet-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (parseInt(btn.innerText) === amount) btn.classList.add('active');
-            });
+            document.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            tg.HapticFeedback.selectionChanged();
         }
 
         function changePair(symbol, pairName) {
@@ -593,15 +591,22 @@
         fetchPrice(); setInterval(fetchPrice, 1200);
 
         function makeBet(direction) {
-            if (isPlaying || balance < currentBet) return;
-            balance -= currentBet; updateUI();
+            if (isPlaying) return;
+            if (balance < currentBet) {
+                alert("Недостаточно средств на балансе!");
+                return;
+            }
+
+            tg.HapticFeedback.impactOccurred('medium');
+            balance -= currentBet;
+            updateUI();
             tg.CloudStorage.setItem('user_balance', balance.toString());
 
             isPlaying = true;
             const startPrice = currentPrice;
             document.getElementById('bet-selection').style.display = 'none';
             document.querySelector('.pair-container').style.display = 'none';
-            
+
             let timeLeft = 60;
             const timerStatus = document.getElementById('timer-status');
             const interval = setInterval(() => {
@@ -617,13 +622,13 @@
         function finishGame(startPrice, direction) {
             const won = (direction === 'UP' && currentPrice > startPrice) || (direction === 'DOWN' && currentPrice < startPrice);
             stats.total++;
-            xp += 50; // Начисляем 50 XP за матч
+            xp += 50;
 
             if (won) {
                 stats.wins++;
                 let prize = currentBet * 2;
                 balance += prize;
-                xp += 100; // Доп. XP за победу
+                xp += 100;
                 tg.HapticFeedback.notificationOccurred('success');
             } else {
                 stats.losses++;
@@ -635,7 +640,7 @@
             tg.CloudStorage.setItem('user_xp', xp.toString());
             tg.CloudStorage.setItem('user_stats', JSON.stringify(stats));
 
-            // Передаем баланс и XP обратно в бота
+            // Перенаправление в твой бот с передачей баланса и XP
             setTimeout(() => {
                 window.location.href = `https://t.me/predict_duels_game_bot?start=balance_${balance}_xp_${xp}`;
             }, 2500);
